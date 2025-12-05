@@ -14,6 +14,8 @@ class Evidence(BaseModel):
     )
     file = models.FileField(upload_to='evidence/%Y/%m/%d/')
     description = models.TextField(blank=True)
+    note = models.TextField(blank=True)  # Additional notes for evidence
+    reference_code = models.CharField(max_length=255, blank=True)  # Reference code for evidence
     uploaded_by = models.ForeignKey(
         'accounts.User',
         on_delete=models.SET_NULL,

@@ -11,9 +11,13 @@ from proformas.models import ProformaTemplate
 from .services import (
     calculate_assignment_completion,
     get_section_summaries,
-    get_pending_items
+    get_pending_items,
+    get_module_stats,
+    get_module_category_breakdown,
+    get_user_assignments
 )
 from .serializers import DashboardSummarySerializer, PendingItemSerializer
+from modules.models import Module, UserModuleRole
 
 
 @api_view(['GET'])
@@ -133,3 +137,73 @@ def pending_items(request):
     serializer = PendingItemSerializer(data=items_data, many=True)
     serializer.is_valid()
     return Response(serializer.validated_data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def modules_list(request):
+    """List all modules with stats (for SUPERADMIN)."""
+    # Check if user is super admin
+    is_super_admin = request.user.is_superuser or request.user.user_roles.filter(
+        role__name='SuperAdmin'
+    ).exists()
+    
+    if not is_super_admin:
+        return Response(
+            {'detail': 'You do not have permission to view all modules.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    modules = Module.objects.filter(is_active=True)
+    modules_data = []
+    
+    for module in modules:
+        stats = get_module_stats(module.id)
+        if stats:
+            modules_data.append(stats)
+    
+    return Response(modules_data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def module_dashboard(request, module_id):
+    """Get module-specific dashboard."""
+    # Check if user has access to this module
+    has_access = request.user.is_superuser or UserModuleRole.objects.filter(
+        user=request.user,
+        module_id=module_id
+    ).exists()
+    
+    if not has_access:
+        return Response(
+            {'detail': 'You do not have access to this module.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    stats = get_module_stats(module_id)
+    if not stats:
+        return Response(
+            {'detail': 'Module not found or inactive.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    category_breakdown = get_module_category_breakdown(module_id)
+    
+    response_data = {
+        **stats,
+        'category_breakdown': category_breakdown,
+    }
+    
+    return Response(response_data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_assignments(request):
+    """Get current user's assignments across modules."""
+    module_id = request.query_params.get('module')
+    
+    assignments = get_user_assignments(request.user, module_id=module_id)
+    
+    return Response(assignments)

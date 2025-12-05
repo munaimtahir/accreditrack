@@ -33,6 +33,9 @@ export function ItemDetailDrawer({
   const [completionPercent, setCompletionPercent] = useState(itemStatus.completion_percent);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [uploadNote, setUploadNote] = useState('');
+  const [uploadReferenceCode, setUploadReferenceCode] = useState('');
 
   useEffect(() => {
     fetchEvidence();
@@ -80,12 +83,21 @@ export function ItemDetailDrawer({
     const formData = new FormData();
     formData.append('file', file);
     formData.append('item_status', itemStatus.id);
+    if (uploadNote) {
+      formData.append('note', uploadNote);
+    }
+    if (uploadReferenceCode) {
+      formData.append('reference_code', uploadReferenceCode);
+    }
 
     try {
       await apiClient.instance.post(`/item-status/${itemStatus.id}/evidence/`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       fetchEvidence();
+      setShowUploadForm(false);
+      setUploadNote('');
+      setUploadReferenceCode('');
     } catch (error) {
       console.error('Failed to upload evidence:', error);
     }
@@ -162,17 +174,45 @@ export function ItemDetailDrawer({
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">Evidence</h3>
               {canUpdateStatus && (
-                <label className="cursor-pointer">
-                  <span className="text-sm text-blue-600 hover:underline">Upload File</span>
-                  <input
+                <button
+                  onClick={() => setShowUploadForm(!showUploadForm)}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  {showUploadForm ? 'Cancel' : 'Upload File'}
+                </button>
+              )}
+            </div>
+            {showUploadForm && canUpdateStatus && (
+              <div className="p-4 border rounded-lg space-y-3 bg-gray-50">
+                <div>
+                  <Label>File</Label>
+                  <Input
                     type="file"
-                    className="hidden"
                     onChange={handleFileUpload}
                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                   />
-                </label>
-              )}
-            </div>
+                </div>
+                <div>
+                  <Label>Reference Code (optional)</Label>
+                  <Input
+                    type="text"
+                    value={uploadReferenceCode}
+                    onChange={(e) => setUploadReferenceCode(e.target.value)}
+                    placeholder="Enter reference code"
+                  />
+                </div>
+                <div>
+                  <Label>Note (optional)</Label>
+                  <textarea
+                    value={uploadNote}
+                    onChange={(e) => setUploadNote(e.target.value)}
+                    placeholder="Enter note"
+                    className="w-full p-2 border rounded-md"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               {evidence.map((ev) => (
                 <div key={ev.id} className="p-3 border rounded-lg">
@@ -180,10 +220,25 @@ export function ItemDetailDrawer({
                     href={ev.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="text-blue-600 hover:underline font-medium"
                   >
                     {ev.file_name}
                   </a>
+                  {ev.reference_code && (
+                    <div className="text-sm text-gray-700 mt-1">
+                      Reference: {ev.reference_code}
+                    </div>
+                  )}
+                  {ev.note && (
+                    <div className="text-sm text-gray-600 mt-1">
+                      Note: {ev.note}
+                    </div>
+                  )}
+                  {ev.description && (
+                    <div className="text-sm text-gray-600 mt-1">
+                      {ev.description}
+                    </div>
+                  )}
                   <div className="text-xs text-gray-500 mt-1">
                     Uploaded by {ev.uploaded_by_email} on{' '}
                     {new Date(ev.uploaded_at).toLocaleDateString()}

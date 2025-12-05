@@ -12,6 +12,13 @@ class ProformaTemplate(BaseModel):
     description = models.TextField(blank=True)
     version = models.CharField(max_length=50, default='1.0')
     is_active = models.BooleanField(default=True)
+    module = models.ForeignKey(
+        'modules.Module',
+        on_delete=models.SET_NULL,
+        related_name='templates',
+        null=True,
+        blank=True
+    )
     
     class Meta:
         db_table = 'proforma_templates'
@@ -52,6 +59,7 @@ class ProformaItem(BaseModel):
     requirement_text = models.TextField()
     required_evidence_type = models.CharField(max_length=255, blank=True)  # Free text
     importance_level = models.SmallIntegerField(null=True, blank=True)  # 1-5, optional
+    implementation_criteria = models.TextField(blank=True)  # Optional implementation criteria
     
     class Meta:
         db_table = 'proforma_items'

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Assignment, ItemStatus
+from .models import Assignment, ItemStatus, AssignmentUpdate
 
 
 class ItemStatusInline(admin.TabularInline):
@@ -27,3 +27,13 @@ class ItemStatusAdmin(admin.ModelAdmin):
     list_filter = ['status', 'assignment__proforma_template', 'assignment__department', 'created_at']
     search_fields = ['assignment__proforma_template__title', 'proforma_item__code', 'proforma_item__requirement_text']
     autocomplete_fields = ['assignment', 'proforma_item', 'last_updated_by']
+
+
+@admin.register(AssignmentUpdate)
+class AssignmentUpdateAdmin(admin.ModelAdmin):
+    """Admin interface for AssignmentUpdate model."""
+    list_display = ['assignment', 'user', 'status', 'created_at']
+    list_filter = ['status', 'created_at']
+    search_fields = ['assignment__proforma_template__title', 'user__email', 'note']
+    autocomplete_fields = ['assignment', 'user']
+    readonly_fields = ['created_at', 'updated_at']

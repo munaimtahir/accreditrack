@@ -109,6 +109,8 @@ export interface Evidence {
   file_name: string;
   file_size: number | null;
   description: string;
+  note: string;
+  reference_code: string;
   uploaded_by: string;
   uploaded_by_email: string;
   uploaded_at: string;
@@ -162,4 +164,72 @@ export interface AuthResponse {
   access: string;
   refresh: string;
   user: User;
+}
+
+export interface Module {
+  id: string;
+  code: string;
+  display_name: string;
+  description: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserModuleRole {
+  id: string;
+  user: string;
+  user_email: string;
+  user_full_name: string;
+  module: string;
+  module_code: string;
+  module_display_name: string;
+  role: 'SUPERADMIN' | 'DASHBOARD_ADMIN' | 'CATEGORY_ADMIN' | 'USER';
+  categories: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ModuleStats {
+  module_id: string;
+  module_code: string;
+  module_display_name: string;
+  total_assignments: number;
+  total_items: number;
+  overall_completion_percent: number;
+  verified_count: number;
+  submitted_count: number;
+  in_progress_count: number;
+  not_started_count: number;
+  templates_count: number;
+  category_breakdown?: CategoryBreakdown[];
+}
+
+export interface CategoryBreakdown {
+  section_code: string;
+  section_title: string;
+  total_items: number;
+  verified_count: number;
+  submitted_count: number;
+  in_progress_count: number;
+  not_started_count: number;
+  completion_percent: number;
+}
+
+export interface ModuleAssignment {
+  id: string;
+  proforma_template_id: string;
+  proforma_template_title: string;
+  module_id: string | null;
+  module_code: string | null;
+  scope_type: 'DEPARTMENT' | 'SECTION' | 'INDICATOR';
+  section_code: string | null;
+  proforma_item_code: string | null;
+  instructions: string;
+  start_date: string;
+  due_date: string;
+  status: string;
+  total_items: number;
+  verified_items: number;
+  completion_percent: number;
 }
