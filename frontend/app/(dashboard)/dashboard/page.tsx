@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import apiClient from '@/lib/api';
-import { DashboardSummary, PendingItem } from '@/lib/types';
+import { DashboardSummary, PendingItem, ModuleStats } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user, isQAAdmin } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
+  const [modules, setModules] = useState<ModuleStats[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,6 +28,16 @@ export default function DashboardPage() {
       ]);
       setSummary(summaryRes.data);
       setPendingItems(pendingRes.data);
+      
+      // Fetch modules if user is super admin
+      if (isQAAdmin) {
+        try {
+          const modulesRes = await apiClient.instance.get('/dashboard/modules/');
+          setModules(modulesRes.data);
+        } catch (error) {
+          console.error('Failed to fetch modules:', error);
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
     } finally {
@@ -108,6 +121,47 @@ export default function DashboardPage() {
                 <Bar dataKey="completion_percent" fill="#3b82f6" />
               </BarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {modules.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Accreditation Modules</CardTitle>
+            <CardDescription>Available modules</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {modules.map((module) => (
+                <Card
+                  key={module.module_id}
+                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => router.push(`/modules/${module.module_id}`)}
+                >
+                  <CardHeader>
+                    <CardTitle className="text-lg">{module.module_display_name}</CardTitle>
+                    <CardDescription>{module.module_code}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Completion:</span>
+                        <span className="text-sm font-bold">{module.overall_completion_percent}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Assignments:</span>
+                        <span className="text-sm font-bold">{module.total_assignments}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">Items:</span>
+                        <span className="text-sm font-bold">{module.total_items}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

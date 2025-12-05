@@ -13,4 +13,5 @@ urlpatterns = [
     path('evidence/', include('evidence.urls')),
     path('comments/', include('comments.urls')),
     path('dashboard/', include('dashboard.urls')),
+    path('', include('modules.urls')),
 ]

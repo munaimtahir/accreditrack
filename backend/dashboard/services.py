@@ -4,6 +4,7 @@ Service functions for dashboard analytics.
 from django.db.models import Count, Q, Avg
 from assignments.models import Assignment, ItemStatus
 from proformas.models import ProformaTemplate, ProformaSection
+from modules.models import Module, UserModuleRole
 
 
 def calculate_assignment_completion(assignment):
@@ -114,3 +115,134 @@ def get_pending_items(user, template_id=None, department_id=None):
             item_statuses = item_statuses.filter(assignment__department_id__in=user_departments)
     
     return item_statuses.order_by('assignment__due_date', 'proforma_item__code')
+
+
+def get_module_stats(module_id):
+    """Get overall statistics for a module."""
+    try:
+        module = Module.objects.get(id=module_id, is_active=True)
+    except Module.DoesNotExist:
+        return None
+    
+    # Get all templates for this module
+    templates = ProformaTemplate.objects.filter(module=module, is_active=True)
+    template_ids = list(templates.values_list('id', flat=True))
+    
+    # Get all assignments for these templates
+    assignments = Assignment.objects.filter(proforma_template_id__in=template_ids)
+    
+    # Get all item statuses for these assignments
+    item_statuses = ItemStatus.objects.filter(assignment__in=assignments)
+    total_items = item_statuses.count()
+    
+    if total_items == 0:
+        return {
+            'module_id': str(module.id),
+            'module_code': module.code,
+            'module_display_name': module.display_name,
+            'total_assignments': 0,
+            'total_items': 0,
+            'overall_completion_percent': 0,
+            'verified_count': 0,
+            'submitted_count': 0,
+            'in_progress_count': 0,
+            'not_started_count': 0,
+            'templates_count': templates.count(),
+        }
+    
+    return {
+        'module_id': str(module.id),
+        'module_code': module.code,
+        'module_display_name': module.display_name,
+        'total_assignments': assignments.count(),
+        'total_items': total_items,
+        'overall_completion_percent': int((item_statuses.filter(status='Verified').count() / total_items) * 100),
+        'verified_count': item_statuses.filter(status='Verified').count(),
+        'submitted_count': item_statuses.filter(status='Submitted').count(),
+        'in_progress_count': item_statuses.filter(status='InProgress').count(),
+        'not_started_count': item_statuses.filter(status='NotStarted').count(),
+        'templates_count': templates.count(),
+    }
+
+
+def get_module_category_breakdown(module_id):
+    """Get category-wise breakdown for a module."""
+    try:
+        module = Module.objects.get(id=module_id, is_active=True)
+    except Module.DoesNotExist:
+        return []
+    
+    # Get all templates for this module
+    templates = ProformaTemplate.objects.filter(module=module, is_active=True)
+    template_ids = list(templates.values_list('id', flat=True))
+    
+    # Get all assignments for these templates
+    assignments = Assignment.objects.filter(proforma_template_id__in=template_ids)
+    
+    # Get sections (categories) from templates
+    sections = ProformaSection.objects.filter(
+        template_id__in=template_ids
+    ).distinct().order_by('weight', 'code')
+    
+    breakdown = []
+    for section in sections:
+        # Get item statuses for this section
+        section_item_statuses = ItemStatus.objects.filter(
+            assignment__in=assignments,
+            proforma_item__section=section
+        )
+        total = section_item_statuses.count()
+        
+        if total == 0:
+            continue
+        
+        breakdown.append({
+            'section_code': section.code,
+            'section_title': section.title,
+            'total_items': total,
+            'verified_count': section_item_statuses.filter(status='Verified').count(),
+            'submitted_count': section_item_statuses.filter(status='Submitted').count(),
+            'in_progress_count': section_item_statuses.filter(status='InProgress').count(),
+            'not_started_count': section_item_statuses.filter(status='NotStarted').count(),
+            'completion_percent': int((section_item_statuses.filter(status='Verified').count() / total) * 100),
+        })
+    
+    return breakdown
+
+
+def get_user_assignments(user, module_id=None):
+    """Get user's assignments, optionally filtered by module."""
+    assignments = Assignment.objects.filter(
+        assigned_to=user
+    ).select_related(
+        'proforma_template__module', 'department', 'section', 'proforma_item'
+    ).prefetch_related('item_statuses')
+    
+    if module_id:
+        assignments = assignments.filter(proforma_template__module_id=module_id)
+    
+    result = []
+    for assignment in assignments:
+        total_items = assignment.item_statuses.count()
+        verified_items = assignment.item_statuses.filter(status='Verified').count()
+        completion_percent = int((verified_items / total_items) * 100) if total_items > 0 else 0
+        
+        result.append({
+            'id': str(assignment.id),
+            'proforma_template_id': str(assignment.proforma_template.id),
+            'proforma_template_title': assignment.proforma_template.title,
+            'module_id': str(assignment.proforma_template.module.id) if assignment.proforma_template.module else None,
+            'module_code': assignment.proforma_template.module.code if assignment.proforma_template.module else None,
+            'scope_type': assignment.scope_type,
+            'section_code': assignment.section.code if assignment.section else None,
+            'proforma_item_code': assignment.proforma_item.code if assignment.proforma_item else None,
+            'instructions': assignment.instructions,
+            'start_date': assignment.start_date,
+            'due_date': assignment.due_date,
+            'status': assignment.status,
+            'total_items': total_items,
+            'verified_items': verified_items,
+            'completion_percent': completion_percent,
+        })
+    
+    return result

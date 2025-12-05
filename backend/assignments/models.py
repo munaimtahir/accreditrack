@@ -6,11 +6,17 @@ from core.models import BaseModel
 
 
 class Assignment(BaseModel):
-    """Assignment model linking a proforma template to a department."""
+    """Assignment model linking a proforma template to a department or users."""
     STATUS_CHOICES = [
         ('NotStarted', 'Not Started'),
         ('InProgress', 'In Progress'),
         ('Completed', 'Completed'),
+    ]
+    
+    SCOPE_TYPE_CHOICES = [
+        ('DEPARTMENT', 'Department'),
+        ('SECTION', 'Section'),
+        ('INDICATOR', 'Indicator'),
     ]
     
     proforma_template = models.ForeignKey(
@@ -21,8 +27,35 @@ class Assignment(BaseModel):
     department = models.ForeignKey(
         'organizations.Department',
         on_delete=models.CASCADE,
-        related_name='assignments'
+        related_name='assignments',
+        null=True,
+        blank=True
     )
+    assigned_to = models.ManyToManyField(
+        'accounts.User',
+        related_name='assignments',
+        blank=True
+    )
+    scope_type = models.CharField(
+        max_length=20,
+        choices=SCOPE_TYPE_CHOICES,
+        default='DEPARTMENT'
+    )
+    section = models.ForeignKey(
+        'proformas.ProformaSection',
+        on_delete=models.CASCADE,
+        related_name='assignments',
+        null=True,
+        blank=True
+    )
+    proforma_item = models.ForeignKey(
+        'proformas.ProformaItem',
+        on_delete=models.CASCADE,
+        related_name='assignments',
+        null=True,
+        blank=True
+    )
+    instructions = models.TextField(blank=True)
     start_date = models.DateField()
     due_date = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NotStarted')
@@ -30,10 +63,14 @@ class Assignment(BaseModel):
     class Meta:
         db_table = 'assignments'
         ordering = ['-created_at']
-        unique_together = [['proforma_template', 'department']]
     
     def __str__(self):
-        return f"{self.proforma_template.title} - {self.department.name}"
+        if self.department:
+            return f"{self.proforma_template.title} - {self.department.name}"
+        elif self.assigned_to.exists():
+            users = ', '.join([u.email for u in self.assigned_to.all()[:3]])
+            return f"{self.proforma_template.title} - {users}"
+        return f"{self.proforma_template.title} - Assignment"
 
 
 class ItemStatus(BaseModel):
@@ -73,3 +110,31 @@ class ItemStatus(BaseModel):
     
     def __str__(self):
         return f"{self.assignment} - {self.proforma_item.code} ({self.status})"
+
+
+class AssignmentUpdate(BaseModel):
+    """AssignmentUpdate model for tracking assignment progress updates."""
+    assignment = models.ForeignKey(
+        Assignment,
+        on_delete=models.CASCADE,
+        related_name='updates'
+    )
+    user = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.CASCADE,
+        related_name='assignment_updates'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Assignment.STATUS_CHOICES,
+        blank=True,
+        null=True
+    )
+    note = models.TextField()
+    
+    class Meta:
+        db_table = 'assignment_updates'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Update for {self.assignment} by {self.user.email}"

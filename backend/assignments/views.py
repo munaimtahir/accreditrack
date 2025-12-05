@@ -6,15 +6,17 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Assignment, ItemStatus
-from .serializers import AssignmentSerializer, AssignmentListSerializer, ItemStatusSerializer
+from .models import Assignment, ItemStatus, AssignmentUpdate
+from .serializers import AssignmentSerializer, AssignmentListSerializer, ItemStatusSerializer, AssignmentUpdateSerializer
 from accounts.permissions import IsQAAdmin, IsDepartmentCoordinator
 from proformas.models import ProformaItem
 
 
 class AssignmentViewSet(viewsets.ModelViewSet):
     """ViewSet for Assignment CRUD operations."""
-    queryset = Assignment.objects.select_related('proforma_template', 'department').prefetch_related('item_statuses').all()
+    queryset = Assignment.objects.select_related(
+        'proforma_template', 'department', 'section', 'proforma_item'
+    ).prefetch_related('item_statuses', 'assigned_to').all()
     permission_classes = [IsAuthenticated]
     
     def get_serializer_class(self):
@@ -47,8 +49,8 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             if user_departments:
                 queryset = queryset.filter(department_id__in=user_departments)
             else:
-                # Viewer sees all (read-only)
-                pass
+                # Users see their own assignments
+                queryset = queryset.filter(assigned_to=self.request.user)
         
         # Apply filters
         template_id = self.request.query_params.get('template')
@@ -58,6 +60,14 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         department_id = self.request.query_params.get('department')
         if department_id:
             queryset = queryset.filter(department_id=department_id)
+        
+        user_id = self.request.query_params.get('user')
+        if user_id:
+            queryset = queryset.filter(assigned_to__id=user_id)
+        
+        scope_type = self.request.query_params.get('scope_type')
+        if scope_type:
+            queryset = queryset.filter(scope_type=scope_type)
         
         status_filter = self.request.query_params.get('status')
         if status_filter:
@@ -79,48 +89,91 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Handle multiple departments
-        departments = request.data.get('departments', [])
-        if not departments:
-            # Single department
-            departments = [request.data.get('department_id')]
-        
         template_id = request.data.get('proforma_template_id')
-        template = serializer.validated_data.get('proforma_template_id')
-        if isinstance(template, str):
-            from proformas.models import ProformaTemplate
-            template = ProformaTemplate.objects.get(id=template)
-        elif hasattr(template, 'id'):
-            template = template
+        department_id = request.data.get('department_id')
+        assigned_to_user_ids = request.data.get('assigned_to', [])
+        scope_type = request.data.get('scope_type', 'DEPARTMENT')
+        section_id = request.data.get('section')
+        proforma_item_id = request.data.get('proforma_item')
+        instructions = request.data.get('instructions', '')
         
-        # Get all items from the template
-        items = ProformaItem.objects.filter(
-            section__template_id=template_id
-        ).select_related('section')
+        # Determine which items to create ItemStatus for
+        if scope_type == 'INDICATOR' and proforma_item_id:
+            # Single item assignment
+            items = ProformaItem.objects.filter(id=proforma_item_id)
+        elif scope_type == 'SECTION' and section_id:
+            # Section assignment
+            items = ProformaItem.objects.filter(section_id=section_id)
+        else:
+            # Department assignment - all items from template
+            items = ProformaItem.objects.filter(
+                section__template_id=template_id
+            ).select_related('section')
+        
+        # Handle multiple departments or users
+        departments = request.data.get('departments', [])
+        if not departments and department_id:
+            departments = [department_id]
         
         created_assignments = []
-        for dept_id in departments:
-            assignment = Assignment.objects.create(
-                proforma_template_id=template_id,
-                department_id=dept_id,
-                start_date=serializer.validated_data['start_date'],
-                due_date=serializer.validated_data['due_date'],
-                status=serializer.validated_data.get('status', 'NotStarted')
-            )
-            
-            # Auto-create ItemStatus for each item
-            item_statuses = [
-                ItemStatus(
-                    assignment=assignment,
-                    proforma_item=item,
-                    status='NotStarted',
-                    completion_percent=0
+        
+        # If user assignments, create one per user
+        if assigned_to_user_ids:
+            for user_id in assigned_to_user_ids:
+                assignment = Assignment.objects.create(
+                    proforma_template_id=template_id,
+                    department_id=department_id,
+                    scope_type=scope_type,
+                    section_id=section_id,
+                    proforma_item_id=proforma_item_id,
+                    instructions=instructions,
+                    start_date=serializer.validated_data['start_date'],
+                    due_date=serializer.validated_data['due_date'],
+                    status=serializer.validated_data.get('status', 'NotStarted')
                 )
-                for item in items
-            ]
-            ItemStatus.objects.bulk_create(item_statuses)
-            
-            created_assignments.append(assignment)
+                assignment.assigned_to.add(user_id)
+                
+                # Auto-create ItemStatus for relevant items
+                item_statuses = [
+                    ItemStatus(
+                        assignment=assignment,
+                        proforma_item=item,
+                        status='NotStarted',
+                        completion_percent=0
+                    )
+                    for item in items
+                ]
+                ItemStatus.objects.bulk_create(item_statuses)
+                
+                created_assignments.append(assignment)
+        else:
+            # Department-based assignments
+            for dept_id in departments:
+                assignment = Assignment.objects.create(
+                    proforma_template_id=template_id,
+                    department_id=dept_id,
+                    scope_type=scope_type,
+                    section_id=section_id,
+                    proforma_item_id=proforma_item_id,
+                    instructions=instructions,
+                    start_date=serializer.validated_data['start_date'],
+                    due_date=serializer.validated_data['due_date'],
+                    status=serializer.validated_data.get('status', 'NotStarted')
+                )
+                
+                # Auto-create ItemStatus for relevant items
+                item_statuses = [
+                    ItemStatus(
+                        assignment=assignment,
+                        proforma_item=item,
+                        status='NotStarted',
+                        completion_percent=0
+                    )
+                    for item in items
+                ]
+                ItemStatus.objects.bulk_create(item_statuses)
+                
+                created_assignments.append(assignment)
         
         # Return the first assignment if single, or list if multiple
         if len(created_assignments) == 1:
@@ -229,3 +282,39 @@ class ItemStatusViewSet(viewsets.ModelViewSet):
         serializer.save(last_updated_by=request.user)
         
         return Response(serializer.data)
+
+
+class AssignmentUpdateViewSet(viewsets.ModelViewSet):
+    """ViewSet for AssignmentUpdate operations."""
+    queryset = AssignmentUpdate.objects.select_related('assignment', 'user').all()
+    serializer_class = AssignmentUpdateSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post']  # Only allow GET and POST
+    
+    def get_queryset(self):
+        """Filter queryset based on query parameters."""
+        queryset = super().get_queryset()
+        
+        assignment_id = self.request.query_params.get('assignment')
+        if assignment_id:
+            queryset = queryset.filter(assignment_id=assignment_id)
+        
+        user_id = self.request.query_params.get('user')
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+        
+        # Users can only see updates for their own assignments or if they're admins
+        if not (self.request.user.is_superuser or self.request.user.user_roles.filter(
+            role__name__in=['SuperAdmin', 'QAAdmin']
+        ).exists()):
+            # Filter to show only updates for assignments assigned to the user
+            user_assignment_ids = Assignment.objects.filter(
+                assigned_to=self.request.user
+            ).values_list('id', flat=True)
+            queryset = queryset.filter(assignment_id__in=user_assignment_ids)
+        
+        return queryset
+    
+    def perform_create(self, serializer):
+        """Set the user to the current user."""
+        serializer.save(user=self.request.user)
