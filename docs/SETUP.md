@@ -64,15 +64,27 @@ Visit `http://localhost:3000`.
 
 ## 5. Seeding Sample Data
 
-Later, a management command like:
+Run the seed command to create demo data:
 
 ```bash
-python manage.py seed_demo_data
+docker-compose -f infra/docker-compose.dev.yml exec backend python config/manage.py seed_demo_data
 ```
 
-will create:
-- A sample ProformaTemplate, Sections, and Items.
-- A few Departments.
-- Demo users with different roles.
+Or if running without Docker:
 
-Add its details here once implemented.
+```bash
+cd backend
+python config/manage.py seed_demo_data
+```
+
+This creates:
+- Roles: SuperAdmin, QAAdmin, DepartmentCoordinator, Viewer
+- Departments: Medical, Surgery, Pediatrics
+- Users with different roles (see output for credentials)
+- A sample ProformaTemplate with sections and items
+- Sample assignments for departments
+
+Default credentials:
+- SuperAdmin: admin@accreditrack.local / admin123
+- QAAdmin: qa@accreditrack.local / qa123
+- Coordinator: coordinator.med@accreditrack.local / coord123
