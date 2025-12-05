@@ -7,8 +7,9 @@ from core.models import BaseModel
 
 class ProformaTemplate(BaseModel):
     """Proforma template model."""
+    code = models.CharField(max_length=100, unique=True, blank=True, null=True)  # e.g., "PHC-MSDS-2018"
     title = models.CharField(max_length=255)
-    authority_name = models.CharField(max_length=255)  # e.g., "PMDC"
+    authority_name = models.CharField(max_length=255)  # e.g., "PHC", "PMDC"
     description = models.TextField(blank=True)
     version = models.CharField(max_length=50, default='1.0')
     is_active = models.BooleanField(default=True)
@@ -30,12 +31,29 @@ class ProformaTemplate(BaseModel):
 
 class ProformaSection(BaseModel):
     """Proforma section model."""
+    SECTION_TYPE_CHOICES = [
+        ('CATEGORY', 'Category'),
+        ('STANDARD', 'Standard'),
+    ]
+    
     template = models.ForeignKey(
         ProformaTemplate,
         on_delete=models.CASCADE,
         related_name='sections'
     )
-    code = models.CharField(max_length=50)  # e.g., "A", "B1", "1.2"
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        related_name='children',
+        null=True,
+        blank=True
+    )  # For hierarchical structure: category -> standards
+    section_type = models.CharField(
+        max_length=20,
+        choices=SECTION_TYPE_CHOICES,
+        default='STANDARD'
+    )  # CATEGORY or STANDARD
+    code = models.CharField(max_length=50)  # e.g., "ROM", "ROM-1"
     title = models.CharField(max_length=255)
     weight = models.IntegerField(default=0)  # For ordering
     
@@ -49,17 +67,20 @@ class ProformaSection(BaseModel):
 
 
 class ProformaItem(BaseModel):
-    """Proforma item model."""
+    """Proforma item model (represents indicators in PHC context)."""
     section = models.ForeignKey(
         ProformaSection,
         on_delete=models.CASCADE,
         related_name='items'
     )
-    code = models.CharField(max_length=50)  # e.g., "A.1", "B.2.3"
+    code = models.CharField(max_length=50)  # e.g., "ROM-1-1", "ROM-1-2"
     requirement_text = models.TextField()
     required_evidence_type = models.CharField(max_length=255, blank=True)  # Free text
     importance_level = models.SmallIntegerField(null=True, blank=True)  # 1-5, optional
     implementation_criteria = models.TextField(blank=True)  # Optional implementation criteria
+    max_score = models.SmallIntegerField(default=10)  # Maximum score for this indicator
+    weightage_percent = models.SmallIntegerField(default=100)  # Weightage percentage (80, 100, etc.)
+    is_licensing_critical = models.BooleanField(default=False)  # Whether this is critical for licensing
     
     class Meta:
         db_table = 'proforma_items'

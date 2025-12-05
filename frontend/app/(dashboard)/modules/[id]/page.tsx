@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import apiClient from '@/lib/api';
-import { ModuleStats, CategoryBreakdown } from '@/lib/types';
+import { ModuleStats, CategoryBreakdown, ProformaTemplate } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -14,6 +16,7 @@ export default function ModuleDashboardPage() {
   const router = useRouter();
   const moduleId = params.id as string;
   const [stats, setStats] = useState<ModuleStats | null>(null);
+  const [templates, setTemplates] = useState<ProformaTemplate[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,9 +65,18 @@ export default function ModuleDashboardPage() {
 
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">{stats.module_display_name}</h1>
-        <p className="text-gray-600 mt-2">Module Code: {stats.module_code}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">{stats.module_display_name}</h1>
+          <p className="text-gray-600 mt-2">Module Code: {stats.module_code}</p>
+        </div>
+        {templates.length > 0 && (
+          <Button asChild>
+            <Link href={`/modules/${moduleId}/template`}>
+              View Checklist Template
+            </Link>
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -113,9 +125,60 @@ export default function ModuleDashboardPage() {
             <div className="text-3xl font-bold">
               {stats.templates_count}
             </div>
+            {templates.length > 0 && (
+              <div className="mt-2">
+                {templates.map((template) => (
+                  <Link
+                    key={template.id}
+                    href={`/modules/${moduleId}/template`}
+                    className="text-sm text-blue-600 hover:underline block"
+                  >
+                    {template.title}
+                  </Link>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {templates.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Checklist Templates</CardTitle>
+            <CardDescription>Available templates for this module</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {templates.map((template) => (
+                <Card key={template.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="font-semibold text-lg">{template.title}</div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          {template.authority_name} • Version {template.version}
+                        </div>
+                        {template.description && (
+                          <div className="text-sm text-gray-500 mt-1">{template.description}</div>
+                        )}
+                        <div className="text-sm text-gray-500 mt-2">
+                          {template.sections_count || 0} sections
+                        </div>
+                      </div>
+                      <Button asChild variant="outline">
+                        <Link href={`/modules/${moduleId}/template`}>
+                          View Checklist
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

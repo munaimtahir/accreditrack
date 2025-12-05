@@ -38,6 +38,7 @@ export interface Department {
 
 export interface ProformaTemplate {
   id: string;
+  code?: string;
   title: string;
   authority_name: string;
   description: string;
@@ -45,6 +46,8 @@ export interface ProformaTemplate {
   is_active: boolean;
   sections?: ProformaSection[];
   sections_count?: number;
+  module_code?: string;
+  module_display_name?: string;
   created_at: string;
   updated_at: string;
 }
@@ -66,6 +69,10 @@ export interface ProformaItem {
   requirement_text: string;
   required_evidence_type: string;
   importance_level: number | null;
+  implementation_criteria?: string;
+  max_score?: number;
+  weightage_percent?: number;
+  is_licensing_critical?: boolean;
   created_at: string;
   updated_at: string;
 }

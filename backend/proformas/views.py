@@ -41,12 +41,25 @@ class ProformaTemplateViewSet(viewsets.ModelViewSet):
         if is_active is not None:
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
         
+        code = self.request.query_params.get('code')
+        if code:
+            queryset = queryset.filter(code=code)
+        
+        module_code = self.request.query_params.get('module_code')
+        if module_code:
+            queryset = queryset.filter(module__code=module_code)
+        
+        module_id = self.request.query_params.get('module')
+        if module_id:
+            queryset = queryset.filter(module_id=module_id)
+        
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
                 models.Q(title__icontains=search) |
                 models.Q(authority_name__icontains=search) |
-                models.Q(description__icontains=search)
+                models.Q(description__icontains=search) |
+                models.Q(code__icontains=search)
             )
         
         return queryset
