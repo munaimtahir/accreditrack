@@ -16,6 +16,8 @@ jobs:
   lint-test:
     name: Lint & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: backend
@@ -53,7 +55,7 @@ jobs:
 
       - name: Run Django check
         env:
-          SECRET_KEY: test-secret-key
+          SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'ci-test-secret-key-not-for-production' }}
           DEBUG: 'false'
           DB_NAME: accreditrack
           DB_USER: accreditrack
@@ -64,11 +66,11 @@ jobs:
 
       - name: Run tests
         env:
-          SECRET_KEY: test-secret-key
+          SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY || 'ci-test-secret-key-not-for-production' }}
           DEBUG: 'false'
           DB_NAME: accreditrack
           DB_USER: accreditrack
           DB_PASSWORD: accreditrack
           DB_HOST: localhost
           DB_PORT: 5432
-        run: pytest --no-header -q || echo "No tests found"
+        run: pytest --no-header --tb=short -q
