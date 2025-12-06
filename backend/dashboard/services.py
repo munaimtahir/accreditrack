@@ -398,12 +398,15 @@ def get_overdue_assignments(module_id, template_code=None):
     overdue_assignments = Assignment.objects.filter(
         proforma_template_id__in=template_ids,
         due_date__lt=today
-    ).exclude(status='VERIFIED')
+    ).exclude(status='VERIFIED').prefetch_related(
+        'item_statuses__proforma_item__section',
+        'assigned_to'
+    )
     
     result = []
     for assignment in overdue_assignments:
-        # Get item statuses for this assignment
-        item_statuses = assignment.item_statuses.exclude(status='VERIFIED')
+        # Get item statuses for this assignment (already prefetched)
+        item_statuses = [is_obj for is_obj in assignment.item_statuses.all() if is_obj.status != 'VERIFIED']
         
         for item_status in item_statuses:
             result.append({
