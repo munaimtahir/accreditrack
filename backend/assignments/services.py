@@ -19,7 +19,11 @@ def calculate_indicator_status(item_status):
     if item_status.status == 'Verified':
         return 'Verified'
     
+<<<<<<< HEAD
     # Check if submitted/pending review
+=======
+    # Check if submitted
+>>>>>>> c21e4e8af50074417f4badf980b8cc253535c211
     if item_status.status == 'Submitted':
         return 'Submitted'
     
@@ -64,14 +68,22 @@ def auto_update_assignment_status(assignment):
     if not item_statuses.exists():
         return
     
+<<<<<<< HEAD
     # Check if all items are verified - set assignment to Completed
+=======
+    # Check if all items are verified
+>>>>>>> c21e4e8af50074417f4badf980b8cc253535c211
     all_verified = all(item.status == 'Verified' for item in item_statuses)
     if all_verified and assignment.status != 'Completed':
         assignment.status = 'Completed'
         assignment.save()
         return
     
+<<<<<<< HEAD
     # Check if any items are submitted - set assignment to InProgress (under review)
+=======
+    # Check if any items are submitted
+>>>>>>> c21e4e8af50074417f4badf980b8cc253535c211
     any_submitted = any(item.status == 'Submitted' for item in item_statuses)
     if any_submitted and assignment.status == 'NotStarted':
         assignment.status = 'InProgress'
@@ -113,14 +125,22 @@ def get_indicator_completion_stats(proforma_item, assignment=None):
         }
     
     verified = item_statuses.filter(status='Verified').count()
+<<<<<<< HEAD
     pending_review = item_statuses.filter(status='Submitted').count()
+=======
+    submitted = item_statuses.filter(status='Submitted').count()
+>>>>>>> c21e4e8af50074417f4badf980b8cc253535c211
     in_progress = item_statuses.filter(status='InProgress').count()
     not_started = item_statuses.filter(status='NotStarted').count()
     
     return {
         'total': total,
         'verified': verified,
+<<<<<<< HEAD
         'pending_review': pending_review,
+=======
+        'submitted': submitted,
+>>>>>>> c21e4e8af50074417f4badf980b8cc253535c211
         'in_progress': in_progress,
         'not_started': not_started,
         'completion_percent': int((verified / total) * 100) if total > 0 else 0,
