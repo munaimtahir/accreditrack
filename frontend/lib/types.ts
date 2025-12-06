@@ -122,6 +122,7 @@ export interface Evidence {
   description: string;
   note: string;
   reference_code: string;
+  evidence_type: 'file' | 'image' | 'note' | 'reference';
   uploaded_by: string;
   uploaded_by_email: string;
   uploaded_at: string;

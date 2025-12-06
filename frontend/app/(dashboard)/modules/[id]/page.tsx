@@ -46,6 +46,11 @@ export default function ModuleDashboardPage() {
       });
       const templatesData = response.data.results || response.data;
       setTemplates(templatesData);
+      
+      // Fetch template stats for the first template if available
+      if (templatesData && templatesData.length > 0) {
+        fetchTemplateStats(templatesData[0].code);
+      }
     } catch (error) {
       console.error('Failed to fetch templates:', error);
     }
