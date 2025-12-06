@@ -65,8 +65,6 @@ class AssignmentSerializer(serializers.ModelSerializer):
         return obj.item_statuses.filter(status='Verified').count()
 
 
-<<<<<<< HEAD
-=======
 class AssignmentUpdateSerializer(serializers.ModelSerializer):
     """Serializer for AssignmentUpdate model."""
     user_email = serializers.EmailField(source='user.email', read_only=True)
@@ -85,7 +83,6 @@ class AssignmentUpdateSerializer(serializers.ModelSerializer):
         return obj.item_statuses.filter(status='Verified').count()
 
 
->>>>>>> c21e4e8af50074417f4badf980b8cc253535c211
 class AssignmentListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for assignment list view."""
     proforma_template_title = serializers.CharField(source='proforma_template.title', read_only=True)

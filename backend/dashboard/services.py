@@ -237,26 +237,6 @@ def get_module_category_breakdown(module_id):
             'not_started_count': section_stats['not_started'],
             'rejected_count': section_stats['rejected'],
             'completion_percent': int((section_stats['verified'] / total) * 100) if total > 0 else 0,
-            # Use aggregate query to get all counts in one database round-trip
-            section_stats = section_item_statuses.aggregate(
-                verified=Count('id', filter=Q(status='Verified')),
-                submitted=Count('id', filter=Q(status='Submitted')),
-                in_progress=Count('id', filter=Q(status='InProgress')),
-                not_started=Count('id', filter=Q(status='NotStarted')),
-                rejected=Count('id', filter=Q(status='Rejected')),
-            )
-            
-            breakdown.append({
-                'section_code': section.code,
-                'section_title': section.title,
-                'total_items': total,
-                'verified_count': section_stats['verified'],
-                'submitted_count': section_stats['submitted'],
-                'in_progress_count': section_stats['in_progress'],
-                'not_started_count': section_stats['not_started'],
-                'rejected_count': section_stats['rejected'],
-                'completion_percent': int((section_stats['verified'] / total) * 100) if total > 0 else 0,
-            })
         })
     
     return breakdown
