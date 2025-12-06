@@ -48,13 +48,24 @@ def get_assignment_summary(assignment):
             'rejected_count': 0,
         }
     
+    # Use aggregate query to get all counts in one database round-trip
+    stats = item_statuses.aggregate(
+        verified=Count('id', filter=Q(status='VERIFIED')),
+        pending_review=Count('id', filter=Q(status='PENDING_REVIEW')),
+        in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
+        not_started=Count('id', filter=Q(status='NOT_STARTED')),
+        completed=Count('id', filter=Q(status='COMPLETED')),
+        rejected=Count('id', filter=Q(status='REJECTED')),
+    )
+    
     return {
         'overall_completion_percent': calculate_assignment_completion(assignment),
-        'verified_count': item_statuses.filter(status='VERIFIED').count(),
-        'pending_review_count': item_statuses.filter(status='PENDING_REVIEW').count(),
-        'in_progress_count': item_statuses.filter(status='IN_PROGRESS').count(),
-        'not_started_count': item_statuses.filter(status='NOT_STARTED').count(),
-        'completed_count': item_statuses.filter(status='COMPLETED').count(),
+        'verified_count': stats['verified'],
+        'pending_review_count': stats['pending_review'],
+        'in_progress_count': stats['in_progress'],
+        'not_started_count': stats['not_started'],
+        'completed_count': stats['completed'],
+        'rejected_count': stats['rejected'],
     }
 
 
@@ -159,12 +170,31 @@ def get_module_stats(module_id):
         'module_display_name': module.display_name,
         'total_assignments': assignments.count(),
         'total_items': total_items,
-        'overall_completion_percent': int((item_statuses.filter(status='VERIFIED').count() / total_items) * 100) if total_items > 0 else 0,
-        'verified_count': item_statuses.filter(status='VERIFIED').count(),
-        'pending_review_count': item_statuses.filter(status='PENDING_REVIEW').count(),
-        'in_progress_count': item_statuses.filter(status='IN_PROGRESS').count(),
-        'not_started_count': item_statuses.filter(status='NOT_STARTED').count(),
-        'completed_count': item_statuses.filter(status='COMPLETED').count(),
+        # Use aggregate query to get all counts in one database round-trip
+        module_stats = item_statuses.aggregate(
+            verified=Count('id', filter=Q(status='VERIFIED')),
+            pending_review=Count('id', filter=Q(status='PENDING_REVIEW')),
+            in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
+            not_started=Count('id', filter=Q(status='NOT_STARTED')),
+            completed=Count('id', filter=Q(status='COMPLETED')),
+            rejected=Count('id', filter=Q(status='REJECTED')),
+        )
+        
+        return {
+            'module_id': str(module.id),
+            'module_code': module.code,
+            'module_display_name': module.display_name,
+            'total_assignments': assignments.count(),
+            'total_items': total_items,
+            'overall_completion_percent': int((module_stats['verified'] / total_items) * 100) if total_items > 0 else 0,
+            'verified_count': module_stats['verified'],
+            'pending_review_count': module_stats['pending_review'],
+            'in_progress_count': module_stats['in_progress'],
+            'not_started_count': module_stats['not_started'],
+            'completed_count': module_stats['completed'],
+            'rejected_count': module_stats['rejected'],
+            'templates_count': templates.count(),
+        }
         'templates_count': templates.count(),
     }
 
@@ -204,12 +234,28 @@ def get_module_category_breakdown(module_id):
             'section_code': section.code,
             'section_title': section.title,
             'total_items': total,
-            'verified_count': section_item_statuses.filter(status='VERIFIED').count(),
-            'pending_review_count': section_item_statuses.filter(status='PENDING_REVIEW').count(),
-            'in_progress_count': section_item_statuses.filter(status='IN_PROGRESS').count(),
-            'not_started_count': section_item_statuses.filter(status='NOT_STARTED').count(),
-            'completed_count': section_item_statuses.filter(status='COMPLETED').count(),
-            'completion_percent': int((section_item_statuses.filter(status='VERIFIED').count() / total) * 100) if total > 0 else 0,
+            # Use aggregate query to get all counts in one database round-trip
+            section_stats = section_item_statuses.aggregate(
+                verified=Count('id', filter=Q(status='VERIFIED')),
+                pending_review=Count('id', filter=Q(status='PENDING_REVIEW')),
+                in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
+                not_started=Count('id', filter=Q(status='NOT_STARTED')),
+                completed=Count('id', filter=Q(status='COMPLETED')),
+                rejected=Count('id', filter=Q(status='REJECTED')),
+            )
+            
+            breakdown.append({
+                'section_code': section.code,
+                'section_title': section.title,
+                'total_items': total,
+                'verified_count': section_stats['verified'],
+                'pending_review_count': section_stats['pending_review'],
+                'in_progress_count': section_stats['in_progress'],
+                'not_started_count': section_stats['not_started'],
+                'completed_count': section_stats['completed'],
+                'rejected_count': section_stats['rejected'],
+                'completion_percent': int((section_stats['verified'] / total) * 100) if total > 0 else 0,
+            })
         })
     
     return breakdown
@@ -398,12 +444,15 @@ def get_overdue_assignments(module_id, template_code=None):
     overdue_assignments = Assignment.objects.filter(
         proforma_template_id__in=template_ids,
         due_date__lt=today
-    ).exclude(status='VERIFIED')
+    ).exclude(status='VERIFIED').prefetch_related(
+        'item_statuses__proforma_item__section',
+        'assigned_to'
+    )
     
     result = []
     for assignment in overdue_assignments:
-        # Get item statuses for this assignment
-        item_statuses = assignment.item_statuses.exclude(status='VERIFIED')
+        # Get item statuses for this assignment (already prefetched)
+        item_statuses = [is_obj for is_obj in assignment.item_statuses.all() if is_obj.status != 'VERIFIED']
         
         for item_status in item_statuses:
             result.append({
@@ -447,12 +496,15 @@ def calculate_category_score(category_section, assignments):
         proforma_item__in=indicators
     )
     
+    # Create dictionary for O(1) lookup instead of N+1 queries
+    item_statuses_dict = {item.proforma_item_id: item for item in item_statuses}
+    
     total_score = 0
     max_possible_score = 0
     
     for indicator in indicators:
         max_possible_score += indicator.max_score
-        item_status = item_statuses.filter(proforma_item=indicator).first()
+        item_status = item_statuses_dict.get(indicator.id)
         if item_status:
             total_score += calculate_indicator_score(item_status)
     

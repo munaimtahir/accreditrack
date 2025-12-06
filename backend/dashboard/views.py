@@ -194,8 +194,8 @@ def module_dashboard(request, module_id):
     
     category_breakdown = get_module_category_breakdown(module_id)
     
-    # Get template code from query params (default to PHC-MSDS-2018 for PHC-LAB)
-    template_code = request.query_params.get('template_code', 'PHC-MSDS-2018')
+    # Get template code from query params
+    template_code = request.query_params.get('template_code')
     
     # Get category-wise and standard-wise completion
     category_completion = get_module_category_completion(module_id, template_code=template_code)

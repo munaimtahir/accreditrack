@@ -58,7 +58,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
         if total == 0:
             return 0
         verified = obj.item_statuses.filter(status='VERIFIED').count()
-        return int((verified / total) * 100) if total > 0 else 0
+        return int((verified / total) * 100)
 
 
 class AssignmentUpdateSerializer(serializers.ModelSerializer):
@@ -96,7 +96,7 @@ class AssignmentListSerializer(serializers.ModelSerializer):
         if total == 0:
             return 0
         verified = obj.item_statuses.filter(status='VERIFIED').count()
-        return int((verified / total) * 100) if total > 0 else 0
+        return int((verified / total) * 100)
 
 
 class AssignmentUpdateSerializer(serializers.ModelSerializer):
