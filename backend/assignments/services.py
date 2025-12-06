@@ -112,16 +112,18 @@ def get_indicator_completion_stats(proforma_item, assignment=None):
             'completion_percent': 0,
         }
     
-    verified = item_statuses.filter(status='Verified').count()
-    pending_review = item_statuses.filter(status='Submitted').count()
-    in_progress = item_statuses.filter(status='InProgress').count()
-    not_started = item_statuses.filter(status='NotStarted').count()
+    stats = item_statuses.aggregate(
+        verified=Count('id', filter=Q(status='Verified')),
+        submitted=Count('id', filter=Q(status='Submitted')),
+        in_progress=Count('id', filter=Q(status='InProgress')),
+        not_started=Count('id', filter=Q(status='NotStarted')),
+    )
     
     return {
         'total': total,
-        'verified': verified,
-        'pending_review': pending_review,
-        'in_progress': in_progress,
-        'not_started': not_started,
-        'completion_percent': int((verified / total) * 100) if total > 0 else 0,
+        'verified': stats['verified'],
+        'pending_review': stats['submitted'],
+        'in_progress': stats['in_progress'],
+        'not_started': stats['not_started'],
+        'completion_percent': int((stats['verified'] / total) * 100) if total > 0 else 0,
     }

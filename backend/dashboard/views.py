@@ -14,12 +14,11 @@ from .services import (
     get_pending_items,
     get_module_stats,
     get_module_category_breakdown,
-<<<<<<< HEAD
-    get_user_assignments
-=======
+    get_module_category_completion,
+    get_module_standard_completion,
+    get_overdue_assignments,
     get_user_assignments,
-    get_template_stats
->>>>>>> 32c2178094be1333b2a2ff6847ba6b73d5a3ba1a
+    get_template_stats,
 )
 from .serializers import DashboardSummarySerializer, PendingItemSerializer
 from modules.models import Module, UserModuleRole
@@ -174,6 +173,8 @@ def modules_list(request):
 @permission_classes([IsAuthenticated])
 def module_dashboard(request, module_id):
     """Get module-specific dashboard."""
+    template_code = request.query_params.get('template_code')
+    
     # Check if user has access to this module
     has_access = request.user.is_superuser or UserModuleRole.objects.filter(
         user=request.user,
@@ -194,10 +195,18 @@ def module_dashboard(request, module_id):
         )
     
     category_breakdown = get_module_category_breakdown(module_id)
+    category_completion = get_module_category_completion(module_id, template_code=template_code)
+    standard_completion = get_module_standard_completion(module_id, template_code=template_code)
+    overdue_assignments = get_overdue_assignments(module_id, template_code=template_code)
+    overall_completion = stats.get('overall_completion_percent', 0)
     
     response_data = {
         **stats,
         'category_breakdown': category_breakdown,
+        'category_completion': category_completion,
+        'standard_completion': standard_completion,
+        'overdue_assignments': overdue_assignments,
+        'overall_completion': overall_completion,
     }
     
     return Response(response_data)
