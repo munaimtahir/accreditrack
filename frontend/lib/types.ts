@@ -122,10 +122,12 @@ export interface Evidence {
   description: string;
   note: string;
   reference_code: string;
+  evidence_type: 'file' | 'image' | 'note' | 'reference';
   uploaded_by: string;
   uploaded_by_email: string;
   uploaded_at: string;
   created_at: string;
+  evidence_type: 'file' | 'image' | 'note' | 'reference';
 }
 
 export interface Comment {
@@ -212,6 +214,7 @@ export interface ModuleStats {
   submitted_count: number;
   in_progress_count: number;
   not_started_count: number;
+  rejected_count: number;
   templates_count: number;
   category_breakdown?: CategoryBreakdown[];
 }
@@ -224,6 +227,7 @@ export interface CategoryBreakdown {
   submitted_count: number;
   in_progress_count: number;
   not_started_count: number;
+  rejected_count: number;
   completion_percent: number;
 }
 
@@ -239,17 +243,11 @@ export interface ModuleAssignment {
   instructions: string;
   start_date: string;
   due_date: string;
-<<<<<<< HEAD
-  status: string;
-=======
   status: 'NotStarted' | 'InProgress' | 'Completed';
->>>>>>> c21e4e8af50074417f4badf980b8cc253535c211
   total_items: number;
   verified_items: number;
   completion_percent: number;
 }
-<<<<<<< HEAD
-=======
 
 export interface TemplateStats {
   template_id: string;
@@ -259,4 +257,3 @@ export interface TemplateStats {
   assigned_indicators: number;
   indicators_with_evidence: number;
 }
->>>>>>> c21e4e8af50074417f4badf980b8cc253535c211
