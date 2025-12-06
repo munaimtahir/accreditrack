@@ -14,12 +14,8 @@ from .services import (
     get_pending_items,
     get_module_stats,
     get_module_category_breakdown,
-<<<<<<< HEAD
-    get_user_assignments
-=======
     get_user_assignments,
     get_template_stats
->>>>>>> 32c2178094be1333b2a2ff6847ba6b73d5a3ba1a
 )
 from .serializers import DashboardSummarySerializer, PendingItemSerializer
 from modules.models import Module, UserModuleRole

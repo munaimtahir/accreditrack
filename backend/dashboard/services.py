@@ -232,10 +232,9 @@ def get_module_category_breakdown(module_id):
             'section_title': section.title,
             'total_items': total,
             'verified_count': section_stats['verified'],
-            'pending_review_count': section_stats['pending_review'],
+            'submitted_count': section_stats['submitted'],
             'in_progress_count': section_stats['in_progress'],
             'not_started_count': section_stats['not_started'],
-            'completed_count': section_stats['completed'],
             'rejected_count': section_stats['rejected'],
             'completion_percent': int((section_stats['verified'] / total) * 100) if total > 0 else 0,
         })
@@ -284,7 +283,6 @@ def get_user_assignments(user, module_id=None):
 def get_template_stats(template_code=None, template_id=None, module_code=None):
     """Get template-specific statistics including total indicators, assigned indicators, and indicators with evidence."""
     from evidence.models import Evidence
-<<<<<<< HEAD
     
     # Get template
     if template_id:
@@ -340,39 +338,7 @@ def get_module_category_completion(module_id, template_code=None):
         module = Module.objects.get(id=module_id, is_active=True)
     except Module.DoesNotExist:
         return []
-=======
->>>>>>> 32c2178094be1333b2a2ff6847ba6b73d5a3ba1a
-    
-    # Get template
-    if template_id:
-        try:
-            template = ProformaTemplate.objects.get(id=template_id, is_active=True)
-        except ProformaTemplate.DoesNotExist:
-            return None
-    elif template_code:
-        try:
-            template = ProformaTemplate.objects.get(code=template_code, is_active=True)
-        except ProformaTemplate.DoesNotExist:
-            return None
-    elif module_code:
-        # Get first template for module
-        templates = ProformaTemplate.objects.filter(module__code=module_code, is_active=True)
-        if not templates.exists():
-            return None
-        template = templates.first()
-    else:
-        return None
-    
-    # Get all indicators (items) in the template
-    total_indicators = ProformaItem.objects.filter(section__template=template).count()
-    
-    # Get indicators that have at least one assignment
-    assigned_indicators = ProformaItem.objects.filter(
-        section__template=template,
-        item_statuses__isnull=False
-    ).distinct().count()
-    
-<<<<<<< HEAD
+
     # Get category sections (section_type='CATEGORY')
     categories = ProformaSection.objects.filter(
         template_id__in=template_ids,
@@ -559,19 +525,9 @@ def calculate_category_score(category_section, assignments):
         item_status = item_statuses_dict.get(indicator.id)
         if item_status:
             total_score += calculate_indicator_score(item_status)
-=======
-    # Get indicators that have at least one evidence record
-    indicators_with_evidence = ProformaItem.objects.filter(
-        section__template=template,
-        item_statuses__evidence_files__isnull=False
-    ).distinct().count()
->>>>>>> 32c2178094be1333b2a2ff6847ba6b73d5a3ba1a
     
     return {
-        'template_id': str(template.id),
-        'template_code': template.code,
-        'template_title': template.title,
-        'total_indicators': total_indicators,
-        'assigned_indicators': assigned_indicators,
-        'indicators_with_evidence': indicators_with_evidence,
+        'total_score': total_score,
+        'max_possible_score': max_possible_score,
+        'score_percent': int((total_score / max_possible_score) * 100) if max_possible_score > 0 else 0,
     }

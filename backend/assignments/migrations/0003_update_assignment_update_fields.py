@@ -11,16 +11,15 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RemoveField(
             model_name='assignmentupdate',
-            name='status',
-        ),
-        migrations.AddField(
-            model_name='assignmentupdate',
             name='status_before',
-            field=models.CharField(blank=True, choices=[('NotStarted', 'Not Started'), ('InProgress', 'In Progress'), ('Completed', 'Completed')], max_length=20),
         ),
-        migrations.AddField(
+        migrations.RemoveField(
             model_name='assignmentupdate',
             name='status_after',
-            field=models.CharField(blank=True, choices=[('NotStarted', 'Not Started'), ('InProgress', 'In Progress'), ('Completed', 'Completed')], max_length=20),
+        ),
+        migrations.AddField(
+            model_name='assignmentupdate',
+            name='status',
+            field=models.CharField(blank=True, choices=[('NotStarted', 'Not Started'), ('InProgress', 'In Progress'), ('Completed', 'Completed')], max_length=20, null=True),
         ),
     ]

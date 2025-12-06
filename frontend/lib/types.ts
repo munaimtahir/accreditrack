@@ -122,6 +122,7 @@ export interface Evidence {
   description: string;
   note: string;
   reference_code: string;
+  evidence_type: 'file' | 'image' | 'note' | 'reference';
   uploaded_by: string;
   uploaded_by_email: string;
   uploaded_at: string;
@@ -244,8 +245,6 @@ export interface ModuleAssignment {
   verified_items: number;
   completion_percent: number;
 }
-<<<<<<< HEAD
-=======
 
 export interface TemplateStats {
   template_id: string;
@@ -255,4 +254,3 @@ export interface TemplateStats {
   assigned_indicators: number;
   indicators_with_evidence: number;
 }
->>>>>>> 32c2178094be1333b2a2ff6847ba6b73d5a3ba1a

@@ -58,15 +58,11 @@ class AssignmentSerializer(serializers.ModelSerializer):
         if total == 0:
             return 0
         verified = obj.item_statuses.filter(status='Verified').count()
-<<<<<<< HEAD
-        return int((verified / total) * 100)
-=======
         return int((verified / total) * 100) if total > 0 else 0
     
     def get_verified_count(self, obj):
         """Get count of verified items."""
         return obj.item_statuses.filter(status='Verified').count()
->>>>>>> 32c2178094be1333b2a2ff6847ba6b73d5a3ba1a
 
 
 class AssignmentListSerializer(serializers.ModelSerializer):
@@ -90,11 +86,7 @@ class AssignmentListSerializer(serializers.ModelSerializer):
         if total == 0:
             return 0
         verified = obj.item_statuses.filter(status='Verified').count()
-<<<<<<< HEAD
-        return int((verified / total) * 100)
-=======
         return int((verified / total) * 100) if total > 0 else 0
->>>>>>> 32c2178094be1333b2a2ff6847ba6b73d5a3ba1a
 
 
 class AssignmentUpdateSerializer(serializers.ModelSerializer):
@@ -106,6 +98,6 @@ class AssignmentUpdateSerializer(serializers.ModelSerializer):
         model = AssignmentUpdate
         fields = [
             'id', 'assignment', 'user', 'user_email', 'user_full_name',
-            'status_before', 'status_after', 'note', 'created_at', 'updated_at'
+            'status', 'note', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'user', 'created_at', 'updated_at']
