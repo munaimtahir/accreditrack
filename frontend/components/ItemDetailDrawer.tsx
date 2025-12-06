@@ -138,7 +138,7 @@ export function ItemDetailDrawer({
                 <Label>Status</Label>
                 <select
                   value={status}
-                  onChange={(e) => setStatus(e.target.value)}
+                  onChange={(e) => setStatus(e.target.value as 'NotStarted' | 'InProgress' | 'Submitted' | 'Verified' | 'Rejected')}
                   className="w-full p-2 border rounded-md"
                   disabled={!canUpdateStatus}
                 >
