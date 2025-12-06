@@ -48,14 +48,25 @@ fi
 
 # Build and start services
 echo -e "${YELLOW}🔨 Building Docker images...${NC}"
-docker compose build --no-cache
+docker compose build
 
 echo -e "${YELLOW}🗄️  Starting database...${NC}"
 docker compose up -d db
 
 # Wait for database to be ready
 echo -e "${YELLOW}⏳ Waiting for database to be ready...${NC}"
-sleep 10
+MAX_TRIES=60
+TRIES=0
+until docker compose exec db pg_isready -U accreditrack > /dev/null 2>&1; do
+    TRIES=$((TRIES+1))
+    if [ "$TRIES" -ge "$MAX_TRIES" ]; then
+        echo -e "${RED}❌ Error: Database did not become ready in time${NC}"
+        exit 1
+    fi
+    sleep 1
+done
+
+echo -e "${GREEN}✓ Database is ready${NC}"
 
 echo -e "${YELLOW}🔄 Running database migrations...${NC}"
 docker compose run --rm backend python config/manage.py migrate
