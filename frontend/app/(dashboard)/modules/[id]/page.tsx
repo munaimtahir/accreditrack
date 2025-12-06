@@ -31,11 +31,6 @@ export default function ModuleDashboardPage() {
     try {
       const response = await apiClient.instance.get(`/dashboard/modules/${moduleId}/`);
       setStats(response.data);
-      
-      // If module code is PHC-LAB, fetch template stats for PHC-MSDS-2018
-      if (response.data.module_code === 'PHC-LAB') {
-        fetchTemplateStats('PHC-MSDS-2018');
-      }
     } catch (error) {
       console.error('Failed to fetch module stats:', error);
     } finally {
@@ -50,6 +45,11 @@ export default function ModuleDashboardPage() {
       });
       const templatesData = response.data.results || response.data;
       setTemplates(templatesData);
+      
+      // Fetch template stats for the first template if available
+      if (templatesData && templatesData.length > 0) {
+        fetchTemplateStats(templatesData[0].code);
+      }
     } catch (error) {
       console.error('Failed to fetch templates:', error);
     }
