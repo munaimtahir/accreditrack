@@ -3,7 +3,7 @@ Service functions for dashboard analytics.
 """
 from django.db.models import Count, Q, Avg
 from assignments.models import Assignment, ItemStatus
-from proformas.models import ProformaTemplate, ProformaSection
+from proformas.models import ProformaTemplate, ProformaSection, ProformaItem
 from modules.models import Module, UserModuleRole
 
 
