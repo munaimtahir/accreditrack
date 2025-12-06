@@ -71,12 +71,9 @@ class EvidenceViewSet(viewsets.ModelViewSet):
         
         # Get evidence type from request
         evidence_type = request.data.get('evidence_type', 'file')
+        file = request.FILES.get('file')
         
         # Validate file (only required for file/image types)
-        file = request.FILES.get('file')
-        note = request.data.get('note', '')
-        reference_code = request.data.get('reference_code', '')
-        
         if evidence_type in ['file', 'image']:
             if not file:
                 return Response(
@@ -105,13 +102,6 @@ class EvidenceViewSet(viewsets.ModelViewSet):
                     {'detail': f'File type {file.content_type} not allowed. Allowed types: {", ".join(allowed_types)}'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-        elif evidence_type in ['note', 'reference']:
-            # For note/reference types, require either note or reference_code
-            if not note and not reference_code:
-                return Response(
-                    {'detail': 'Note or reference code is required for note/reference type evidence'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
         
         # Create evidence
         data = request.data.copy()
@@ -123,9 +113,9 @@ class EvidenceViewSet(viewsets.ModelViewSet):
                     data['evidence_type'] = 'image'
                 else:
                     data['evidence_type'] = 'file'
-            elif note:
+            elif data.get('note'):
                 data['evidence_type'] = 'note'
-            elif reference_code:
+            elif data.get('reference_code'):
                 data['evidence_type'] = 'reference'
             else:
                 data['evidence_type'] = 'file'
