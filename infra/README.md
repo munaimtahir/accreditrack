@@ -79,7 +79,7 @@ nano .env.production
 ```
 
 Update:
-- `NEXT_PUBLIC_API_BASE_URL`: Set to `https://your-google-cloud-ip/api/v1` or your domain
+- `NEXT_PUBLIC_API_URL`: Set to `https://your-google-cloud-ip/api/v1` or your domain
 
 ### 3. Update Nginx Configuration
 
@@ -212,12 +212,16 @@ docker-compose run --rm backend python config/manage.py collectstatic --noinput
 
 ### Backup Database
 ```bash
-docker-compose exec db pg_dump -U accreditrack accreditrack > backup_$(date +%Y%m%d).sql
+mkdir -p backups
+docker-compose exec db pg_dump -U accreditrack accreditrack | gzip > backups/backup_$(date +%Y%m%d).sql.gz
 ```
 
 ### Restore Database
 ```bash
-docker-compose exec -T db psql -U accreditrack accreditrack < backup_20240101.sql
+# Decompress the backup first
+gunzip backup_20240101_120000.sql.gz
+# Then restore
+docker-compose exec -T db psql -U accreditrack accreditrack < backup_20240101_120000.sql
 ```
 
 ### Stop Services
