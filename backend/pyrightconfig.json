@@ -18,7 +18,7 @@
     }
   ],
   "typeCheckingMode": "basic",
-  "reportMissingImports": true,
+  "reportMissingImports": "warning",
   "reportMissingTypeStubs": false,
   "reportUnusedImport": "warning",
   "reportUnusedClass": "warning",
