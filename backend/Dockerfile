@@ -12,8 +12,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Collect static files
-RUN python config/manage.py collectstatic --noinput || true
-
 # Production command (override in docker-compose if needed)
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]

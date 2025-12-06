@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-accreditrack}
       POSTGRES_USER: ${POSTGRES_USER:-accreditrack}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required and must not be empty}
     volumes:
       - db_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -33,6 +33,8 @@ services:
     volumes:
       - backend_static:/app/staticfiles
       - backend_media:/app/media
+    # The command below overrides the CMD specified in backend/Dockerfile.
+    # Update this line if you need to change the startup command for the backend service.
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
 
   frontend:
