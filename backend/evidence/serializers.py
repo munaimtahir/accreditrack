@@ -16,7 +16,7 @@ class EvidenceSerializer(serializers.ModelSerializer):
         model = Evidence
         fields = [
             'id', 'item_status', 'file', 'file_url', 'file_name', 'file_size',
-            'description', 'note', 'reference_code', 'uploaded_by', 'uploaded_by_email', 'uploaded_at', 'created_at'
+            'description', 'note', 'reference_code', 'evidence_type', 'uploaded_by', 'uploaded_by_email', 'uploaded_at', 'created_at'
         ]
         read_only_fields = ['id', 'uploaded_by', 'uploaded_at', 'created_at']
     
