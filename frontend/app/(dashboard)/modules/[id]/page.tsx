@@ -87,10 +87,11 @@ export default function ModuleDashboardPage() {
   }
 
   const statusData = [
-    { name: 'Verified', value: stats.verified_count, color: COLORS[1] },
-    { name: 'Submitted', value: stats.submitted_count, color: COLORS[2] },
-    { name: 'In Progress', value: stats.in_progress_count, color: COLORS[0] },
-    { name: 'Not Started', value: stats.not_started_count, color: COLORS[3] },
+    { name: 'Verified', value: stats.verified_count || 0, color: COLORS[1] },
+    { name: 'Pending Review', value: stats.pending_review_count || 0, color: COLORS[2] },
+    { name: 'In Progress', value: stats.in_progress_count || 0, color: COLORS[0] },
+    { name: 'Not Started', value: stats.not_started_count || 0, color: COLORS[3] },
+    { name: 'Completed', value: stats.completed_count || 0, color: COLORS[4] },
   ].filter(item => item.value > 0);
 
   return (
@@ -305,8 +306,12 @@ export default function ModuleDashboardPage() {
                 <span className="text-2xl font-bold text-green-600">{stats.verified_count}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                <span className="font-medium">Submitted</span>
-                <span className="text-2xl font-bold text-yellow-600">{stats.submitted_count}</span>
+                <span className="font-medium">Pending Review</span>
+                <span className="text-2xl font-bold text-yellow-600">{stats.pending_review_count || 0}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                <span className="font-medium">Completed</span>
+                <span className="text-2xl font-bold text-purple-600">{stats.completed_count || 0}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                 <span className="font-medium">In Progress</span>

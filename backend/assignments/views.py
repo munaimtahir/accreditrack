@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Assignment, ItemStatus, AssignmentUpdate
 from .serializers import AssignmentSerializer, AssignmentListSerializer, ItemStatusSerializer, AssignmentUpdateSerializer
+from .services import update_assignment_status, auto_update_assignment_status
 from accounts.permissions import IsQAAdmin, IsDepartmentCoordinator
 from proformas.models import ProformaItem
 
@@ -129,7 +130,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     instructions=instructions,
                     start_date=serializer.validated_data['start_date'],
                     due_date=serializer.validated_data['due_date'],
-                    status=serializer.validated_data.get('status', 'NotStarted')
+                    status=serializer.validated_data.get('status', 'NOT_STARTED')
                 )
                 assignment.assigned_to.add(user_id)
                 
@@ -138,7 +139,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     ItemStatus(
                         assignment=assignment,
                         proforma_item=item,
-                        status='NotStarted',
+                        status='NOT_STARTED',
                         completion_percent=0
                     )
                     for item in items
@@ -158,7 +159,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     instructions=instructions,
                     start_date=serializer.validated_data['start_date'],
                     due_date=serializer.validated_data['due_date'],
-                    status=serializer.validated_data.get('status', 'NotStarted')
+                    status=serializer.validated_data.get('status', 'NOT_STARTED')
                 )
                 
                 # Auto-create ItemStatus for relevant items
@@ -166,7 +167,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     ItemStatus(
                         assignment=assignment,
                         proforma_item=item,
-                        status='NotStarted',
+                        status='NOT_STARTED',
                         completion_percent=0
                     )
                     for item in items
@@ -210,6 +211,59 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             sections_data[section.id]['items'].append(serializer.data)
         
         return Response(list(sections_data.values()))
+    
+    @action(detail=True, methods=['post'], url_path='submit-for-review')
+    def submit_for_review(self, request, pk=None):
+        """Submit assignment for review (coordinator action)."""
+        assignment = self.get_object()
+        
+        # Check permissions
+        is_coordinator = request.user.user_roles.filter(
+            role__name='DepartmentCoordinator',
+            department=assignment.department
+        ).exists()
+        
+        if not is_coordinator:
+            return Response(
+                {'detail': 'Only department coordinators can submit assignments for review.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        note = request.data.get('note', 'Assignment submitted for review')
+        update_assignment_status(assignment, 'PENDING_REVIEW', request.user, note)
+        
+        serializer = self.get_serializer(assignment)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], url_path='verify')
+    def verify(self, request, pk=None):
+        """Verify assignment (QA admin action)."""
+        assignment = self.get_object()
+        
+        # Check permissions
+        is_qa_admin = request.user.is_superuser or request.user.user_roles.filter(
+            role__name__in=['SuperAdmin', 'QAAdmin']
+        ).exists()
+        
+        if not is_qa_admin:
+            return Response(
+                {'detail': 'Only QA admins can verify assignments.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        note = request.data.get('note', 'Assignment verified')
+        update_assignment_status(assignment, 'VERIFIED', request.user, note)
+        
+        serializer = self.get_serializer(assignment)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'], url_path='updates')
+    def updates(self, request, pk=None):
+        """Get progress log timeline for this assignment."""
+        assignment = self.get_object()
+        updates = assignment.updates.select_related('user').order_by('-created_at')
+        serializer = AssignmentUpdateSerializer(updates, many=True)
+        return Response(serializer.data)
 
 
 class ItemStatusViewSet(viewsets.ModelViewSet):
@@ -251,12 +305,12 @@ class ItemStatusViewSet(viewsets.ModelViewSet):
         if new_status:
             current_status = item_status.status
             
-            # Coordinators can: NotStarted -> InProgress -> Submitted
+            # Coordinators can: NOT_STARTED -> IN_PROGRESS -> PENDING_REVIEW
             if is_coordinator and not is_qa_admin:
                 valid_transitions = {
-                    'NotStarted': ['InProgress'],
-                    'InProgress': ['Submitted', 'NotStarted'],
-                    'Submitted': ['InProgress'],
+                    'NOT_STARTED': ['IN_PROGRESS'],
+                    'IN_PROGRESS': ['PENDING_REVIEW', 'NOT_STARTED'],
+                    'PENDING_REVIEW': ['IN_PROGRESS'],
                 }
                 if current_status in valid_transitions:
                     if new_status not in valid_transitions[current_status]:
@@ -265,11 +319,11 @@ class ItemStatusViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST
                         )
             
-            # QAAdmins can mark as Verified/Rejected
-            if is_qa_admin and new_status in ['Verified', 'Rejected']:
-                if current_status != 'Submitted':
+            # QAAdmins can mark as VERIFIED/REJECTED
+            if is_qa_admin and new_status in ['VERIFIED', 'REJECTED']:
+                if current_status != 'PENDING_REVIEW':
                     return Response(
-                        {'detail': 'Can only verify/reject items that are Submitted'},
+                        {'detail': 'Can only verify/reject items that are PENDING_REVIEW'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
         
@@ -281,6 +335,109 @@ class ItemStatusViewSet(viewsets.ModelViewSet):
         item_status.last_updated_by = request.user
         serializer.save(last_updated_by=request.user)
         
+        # Auto-update assignment status
+        auto_update_assignment_status(item_status.assignment)
+        
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], url_path='submit-for-review')
+    def submit_for_review(self, request, pk=None):
+        """Submit item status for review (coordinator action)."""
+        item_status = self.get_object()
+        assignment = item_status.assignment
+        
+        # Check permissions
+        is_coordinator = request.user.user_roles.filter(
+            role__name='DepartmentCoordinator',
+            department=assignment.department
+        ).exists()
+        
+        if not is_coordinator:
+            return Response(
+                {'detail': 'Only department coordinators can submit for review.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if item_status.status not in ['IN_PROGRESS', 'NOT_STARTED']:
+            return Response(
+                {'detail': f'Cannot submit item with status {item_status.status} for review.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        item_status.status = 'PENDING_REVIEW'
+        item_status.last_updated_by = request.user
+        item_status.save()
+        
+        # Auto-update assignment status
+        auto_update_assignment_status(assignment)
+        
+        serializer = self.get_serializer(item_status)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], url_path='verify')
+    def verify(self, request, pk=None):
+        """Verify item status (QA admin action)."""
+        item_status = self.get_object()
+        assignment = item_status.assignment
+        
+        # Check permissions
+        is_qa_admin = request.user.is_superuser or request.user.user_roles.filter(
+            role__name__in=['SuperAdmin', 'QAAdmin']
+        ).exists()
+        
+        if not is_qa_admin:
+            return Response(
+                {'detail': 'Only QA admins can verify items.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if item_status.status != 'PENDING_REVIEW':
+            return Response(
+                {'detail': 'Can only verify items that are pending review.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        item_status.status = 'VERIFIED'
+        item_status.completion_percent = 100
+        item_status.last_updated_by = request.user
+        item_status.save()
+        
+        # Auto-update assignment status
+        auto_update_assignment_status(assignment)
+        
+        serializer = self.get_serializer(item_status)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], url_path='mark-in-progress')
+    def mark_in_progress(self, request, pk=None):
+        """Mark item status as in progress."""
+        item_status = self.get_object()
+        assignment = item_status.assignment
+        
+        # Check permissions
+        is_coordinator = request.user.user_roles.filter(
+            role__name='DepartmentCoordinator',
+            department=assignment.department
+        ).exists()
+        
+        is_qa_admin = request.user.is_superuser or request.user.user_roles.filter(
+            role__name__in=['SuperAdmin', 'QAAdmin']
+        ).exists()
+        
+        if not (is_coordinator or is_qa_admin):
+            return Response(
+                {'detail': 'You do not have permission to update this item.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        item_status.status = 'IN_PROGRESS'
+        item_status.last_updated_by = request.user
+        item_status.save()
+        
+        # Auto-update assignment status
+        auto_update_assignment_status(assignment)
+        
+        serializer = self.get_serializer(item_status)
         return Response(serializer.data)
 
 

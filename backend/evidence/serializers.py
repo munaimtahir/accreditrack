@@ -16,9 +16,29 @@ class EvidenceSerializer(serializers.ModelSerializer):
         model = Evidence
         fields = [
             'id', 'item_status', 'file', 'file_url', 'file_name', 'file_size',
-            'description', 'note', 'reference_code', 'uploaded_by', 'uploaded_by_email', 'uploaded_at', 'created_at'
+            'description', 'note', 'reference_code', 'evidence_type', 'uploaded_by', 'uploaded_by_email', 'uploaded_at', 'created_at'
         ]
         read_only_fields = ['id', 'uploaded_by', 'uploaded_at', 'created_at']
+    
+    def validate(self, attrs):
+        """Validate evidence based on evidence_type."""
+        evidence_type = attrs.get('evidence_type', 'file')
+        file = attrs.get('file')
+        note = attrs.get('note', '')
+        reference_code = attrs.get('reference_code', '')
+        
+        if evidence_type in ['note', 'reference']:
+            if not note and not reference_code:
+                raise serializers.ValidationError(
+                    'Note or reference code is required for note/reference type evidence.'
+                )
+        elif evidence_type in ['file', 'image']:
+            if not file:
+                raise serializers.ValidationError(
+                    'File is required for file/image type evidence.'
+                )
+        
+        return attrs
     
     def get_file_url(self, obj):
         """Get file URL."""
