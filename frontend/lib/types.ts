@@ -57,6 +57,9 @@ export interface ProformaSection {
   code: string;
   title: string;
   weight: number;
+  section_type?: 'CATEGORY' | 'STANDARD';
+  parent_id?: string;
+  parent_code?: string;
   items?: ProformaItem[];
   items_count?: number;
   children?: ProformaSection[];
@@ -279,15 +282,11 @@ export interface ModuleAssignment {
   completion_percent: number;
 }
 
-export interface AssignmentUpdate {
-  id: string;
-  assignment: string;
-  user: string;
-  user_email: string;
-  user_full_name: string;
-  status_before: string | null;
-  status_after: string | null;
-  note: string;
-  created_at: string;
-  updated_at: string;
+export interface TemplateStats {
+  template_id: string;
+  template_code: string;
+  template_title: string;
+  total_indicators: number;
+  assigned_indicators: number;
+  indicators_with_evidence: number;
 }

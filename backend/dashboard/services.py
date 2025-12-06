@@ -299,239 +299,50 @@ def get_user_assignments(user, module_id=None):
     return result
 
 
-def get_module_category_completion(module_id, template_code=None):
-    """
-    Get category-wise completion for a module.
-    Returns list of categories with total/verified indicators and completion %.
-    """
-    try:
-        module = Module.objects.get(id=module_id, is_active=True)
-    except Module.DoesNotExist:
-        return []
+def get_template_stats(template_code=None, template_id=None, module_code=None):
+    """Get template-specific statistics including total indicators, assigned indicators, and indicators with evidence."""
+    from evidence.models import Evidence
     
-    # Get templates for this module
-    templates = ProformaTemplate.objects.filter(module=module, is_active=True)
-    if template_code:
-        templates = templates.filter(code=template_code)
+    # Get template
+    if template_id:
+        try:
+            template = ProformaTemplate.objects.get(id=template_id, is_active=True)
+        except ProformaTemplate.DoesNotExist:
+            return None
+    elif template_code:
+        try:
+            template = ProformaTemplate.objects.get(code=template_code, is_active=True)
+        except ProformaTemplate.DoesNotExist:
+            return None
+    elif module_code:
+        # Get first template for module
+        templates = ProformaTemplate.objects.filter(module__code=module_code, is_active=True)
+        if not templates.exists():
+            return None
+        template = templates.first()
+    else:
+        return None
     
-    template_ids = list(templates.values_list('id', flat=True))
-    if not template_ids:
-        return []
+    # Get all indicators (items) in the template
+    total_indicators = ProformaItem.objects.filter(section__template=template).count()
     
-    # Get all assignments for these templates
-    assignments = Assignment.objects.filter(proforma_template_id__in=template_ids)
+    # Get indicators that have at least one assignment
+    assigned_indicators = ProformaItem.objects.filter(
+        section__template=template,
+        item_statuses__isnull=False
+    ).distinct().count()
     
-    # Get category sections (section_type='CATEGORY')
-    categories = ProformaSection.objects.filter(
-        template_id__in=template_ids,
-        section_type='CATEGORY',
-        parent__isnull=True
-    ).order_by('weight', 'code')
-    
-    result = []
-    for category in categories:
-        # Get all indicators under this category (through standards)
-        standards = category.children.all()
-        standard_ids = list(standards.values_list('id', flat=True))
-        
-        # Get all items (indicators) under these standards
-        indicators = ProformaItem.objects.filter(section_id__in=standard_ids)
-        total_indicators = indicators.count()
-        
-        # Get item statuses for these indicators
-        item_statuses = ItemStatus.objects.filter(
-            assignment__in=assignments,
-            proforma_item__in=indicators
-        )
-        
-        verified_indicators = item_statuses.filter(status='VERIFIED').count()
-        total_with_assignments = item_statuses.count()
-        
-        # Calculate completion: verified / total indicators (including unassigned)
-        completion_percent = int((verified_indicators / total_indicators) * 100) if total_indicators > 0 else 0
-        
-        result.append({
-            'code': category.code,
-            'title': category.title,
-            'total_indicators': total_indicators,
-            'verified_indicators': verified_indicators,
-            'assigned_indicators': total_with_assignments,
-            'completion_percent': completion_percent,
-        })
-    
-    return result
-
-
-def get_module_standard_completion(module_id, template_code=None):
-    """
-    Get standard-wise completion for a module.
-    Returns list of standards with total/verified indicators and completion %.
-    """
-    try:
-        module = Module.objects.get(id=module_id, is_active=True)
-    except Module.DoesNotExist:
-        return []
-    
-    # Get templates for this module
-    templates = ProformaTemplate.objects.filter(module=module, is_active=True)
-    if template_code:
-        templates = templates.filter(code=template_code)
-    
-    template_ids = list(templates.values_list('id', flat=True))
-    if not template_ids:
-        return []
-    
-    # Get all assignments for these templates
-    assignments = Assignment.objects.filter(proforma_template_id__in=template_ids)
-    
-    # Get standard sections (section_type='STANDARD')
-    standards = ProformaSection.objects.filter(
-        template_id__in=template_ids,
-        section_type='STANDARD'
-    ).order_by('weight', 'code')
-    
-    result = []
-    for standard in standards:
-        # Get all items (indicators) under this standard
-        indicators = ProformaItem.objects.filter(section=standard)
-        total_indicators = indicators.count()
-        
-        # Get item statuses for these indicators
-        item_statuses = ItemStatus.objects.filter(
-            assignment__in=assignments,
-            proforma_item__in=indicators
-        )
-        
-        verified_indicators = item_statuses.filter(status='VERIFIED').count()
-        
-        # Calculate completion: verified / total indicators
-        completion_percent = int((verified_indicators / total_indicators) * 100) if total_indicators > 0 else 0
-        
-        result.append({
-            'code': standard.code,
-            'title': standard.title,
-            'category_code': standard.parent.code if standard.parent else None,
-            'category_title': standard.parent.title if standard.parent else None,
-            'total_indicators': total_indicators,
-            'verified_indicators': verified_indicators,
-            'completion_percent': completion_percent,
-        })
-    
-    return result
-
-
-def get_overdue_assignments(module_id, template_code=None):
-    """
-    Get overdue assignments for a module.
-    Returns list of overdue assignments with indicator details.
-    """
-    try:
-        module = Module.objects.get(id=module_id, is_active=True)
-    except Module.DoesNotExist:
-        return []
-    
-    # Get templates for this module
-    templates = ProformaTemplate.objects.filter(module=module, is_active=True)
-    if template_code:
-        templates = templates.filter(code=template_code)
-    
-    template_ids = list(templates.values_list('id', flat=True))
-    if not template_ids:
-        return []
-    
-    # Get overdue assignments (due_date < today and status not VERIFIED)
-    today = date.today()
-    overdue_assignments = Assignment.objects.filter(
-        proforma_template_id__in=template_ids,
-        due_date__lt=today
-    ).exclude(status='VERIFIED').prefetch_related(
-        'item_statuses__proforma_item__section',
-        'assigned_to'
-    )
-    
-    result = []
-    for assignment in overdue_assignments:
-        # Get item statuses for this assignment (already prefetched)
-        item_statuses = [is_obj for is_obj in assignment.item_statuses.all() if is_obj.status != 'VERIFIED']
-        
-        for item_status in item_statuses:
-            result.append({
-                'assignment_id': str(assignment.id),
-                'indicator_code': item_status.proforma_item.code,
-                'indicator_text': item_status.proforma_item.requirement_text[:100],
-                'section_code': item_status.proforma_item.section.code,
-                'due_date': assignment.due_date,
-                'status': item_status.status,
-                'assigned_to': [u.email for u in assignment.assigned_to.all()],
-                'department_name': assignment.department.name if assignment.department else None,
-            })
-    
-    return result
-
-
-def calculate_indicator_score(item_status):
-    """
-    Calculate score for an indicator.
-    Basic scoring: 10 if VERIFIED, 0 otherwise.
-    """
-    if item_status.status == 'VERIFIED':
-        return item_status.proforma_item.max_score
-    return 0
-
-
-def calculate_category_score(category_section, assignments):
-    """
-    Calculate total score for a category.
-    """
-    # Get all standards under this category
-    standards = category_section.children.all()
-    standard_ids = list(standards.values_list('id', flat=True))
-    
-    # Get all indicators under these standards
-    indicators = ProformaItem.objects.filter(section_id__in=standard_ids)
-    
-    # Get item statuses for these indicators
-    item_statuses = ItemStatus.objects.filter(
-        assignment__in=assignments,
-        proforma_item__in=indicators
-    )
-    
-    # Create dictionary for O(1) lookup instead of N+1 queries
-    item_statuses_dict = {item.proforma_item_id: item for item in item_statuses}
-    
-    total_score = 0
-    max_possible_score = 0
-    
-    for indicator in indicators:
-        max_possible_score += indicator.max_score
-        item_status = item_statuses_dict.get(indicator.id)
-        if item_status:
-            total_score += calculate_indicator_score(item_status)
+    # Get indicators that have at least one evidence record
+    indicators_with_evidence = ProformaItem.objects.filter(
+        section__template=template,
+        item_statuses__evidence_files__isnull=False
+    ).distinct().count()
     
     return {
-        'score_achieved': total_score,
-        'max_possible_score': max_possible_score,
-        'score_percent': int((total_score / max_possible_score) * 100) if max_possible_score > 0 else 0,
-    }
-
-
-def calculate_template_score(template, assignments):
-    """
-    Calculate overall score for a template.
-    """
-    # Get all categories
-    categories = template.sections.filter(section_type='CATEGORY', parent__isnull=True)
-    
-    total_score = 0
-    max_possible_score = 0
-    
-    for category in categories:
-        category_score = calculate_category_score(category, assignments)
-        total_score += category_score['score_achieved']
-        max_possible_score += category_score['max_possible_score']
-    
-    return {
-        'score_achieved': total_score,
-        'max_possible_score': max_possible_score,
-        'score_percent': int((total_score / max_possible_score) * 100) if max_possible_score > 0 else 0,
+        'template_id': str(template.id),
+        'template_code': template.code,
+        'template_title': template.title,
+        'total_indicators': total_indicators,
+        'assigned_indicators': assigned_indicators,
+        'indicators_with_evidence': indicators_with_evidence,
     }
