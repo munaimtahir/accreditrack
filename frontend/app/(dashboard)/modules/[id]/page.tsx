@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import apiClient from '@/lib/api';
-import { ModuleStats, CategoryBreakdown, ProformaTemplate } from '@/lib/types';
+import { ModuleStats, CategoryBreakdown, ProformaTemplate, TemplateStats } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -17,11 +17,13 @@ export default function ModuleDashboardPage() {
   const moduleId = params.id as string;
   const [stats, setStats] = useState<ModuleStats | null>(null);
   const [templates, setTemplates] = useState<ProformaTemplate[]>([]);
+  const [templateStats, setTemplateStats] = useState<TemplateStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (moduleId) {
       fetchModuleStats();
+      fetchTemplates();
     }
   }, [moduleId]);
 
@@ -29,10 +31,38 @@ export default function ModuleDashboardPage() {
     try {
       const response = await apiClient.instance.get(`/dashboard/modules/${moduleId}/`);
       setStats(response.data);
+      
+      // If module code is PHC-LAB, fetch template stats for PHC-MSDS-2018
+      if (response.data.module_code === 'PHC-LAB') {
+        fetchTemplateStats('PHC-MSDS-2018');
+      }
     } catch (error) {
       console.error('Failed to fetch module stats:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await apiClient.instance.get('/proformas/templates/', {
+        params: { module: moduleId }
+      });
+      const templatesData = response.data.results || response.data;
+      setTemplates(templatesData);
+    } catch (error) {
+      console.error('Failed to fetch templates:', error);
+    }
+  };
+
+  const fetchTemplateStats = async (templateCode: string) => {
+    try {
+      const response = await apiClient.instance.get('/dashboard/template-stats/', {
+        params: { template_code: templateCode }
+      });
+      setTemplateStats(response.data);
+    } catch (error) {
+      console.error('Failed to fetch template stats:', error);
     }
   };
 
@@ -78,6 +108,56 @@ export default function ModuleDashboardPage() {
           </Button>
         )}
       </div>
+
+      {templateStats && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Indicators</CardTitle>
+              <CardDescription>In PHC MSDS Template</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {templateStats.total_indicators}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Assigned Indicators</CardTitle>
+              <CardDescription>With at least one assignment</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {templateStats.assigned_indicators}
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                {templateStats.total_indicators > 0 
+                  ? `${Math.round((templateStats.assigned_indicators / templateStats.total_indicators) * 100)}% of total`
+                  : '0%'}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Indicators with Evidence</CardTitle>
+              <CardDescription>With at least one evidence file</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">
+                {templateStats.indicators_with_evidence}
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                {templateStats.total_indicators > 0 
+                  ? `${Math.round((templateStats.indicators_with_evidence / templateStats.total_indicators) * 100)}% of total`
+                  : '0%'}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

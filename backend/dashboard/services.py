@@ -246,3 +246,52 @@ def get_user_assignments(user, module_id=None):
         })
     
     return result
+
+
+def get_template_stats(template_code=None, template_id=None, module_code=None):
+    """Get template-specific statistics including total indicators, assigned indicators, and indicators with evidence."""
+    from evidence.models import Evidence
+    
+    # Get template
+    if template_id:
+        try:
+            template = ProformaTemplate.objects.get(id=template_id, is_active=True)
+        except ProformaTemplate.DoesNotExist:
+            return None
+    elif template_code:
+        try:
+            template = ProformaTemplate.objects.get(code=template_code, is_active=True)
+        except ProformaTemplate.DoesNotExist:
+            return None
+    elif module_code:
+        # Get first template for module
+        templates = ProformaTemplate.objects.filter(module__code=module_code, is_active=True)
+        if not templates.exists():
+            return None
+        template = templates.first()
+    else:
+        return None
+    
+    # Get all indicators (items) in the template
+    total_indicators = ProformaItem.objects.filter(section__template=template).count()
+    
+    # Get indicators that have at least one assignment
+    assigned_indicators = ProformaItem.objects.filter(
+        section__template=template,
+        item_statuses__isnull=False
+    ).distinct().count()
+    
+    # Get indicators that have at least one evidence record
+    indicators_with_evidence = ProformaItem.objects.filter(
+        section__template=template,
+        item_statuses__evidence_files__isnull=False
+    ).distinct().count()
+    
+    return {
+        'template_id': str(template.id),
+        'template_code': template.code,
+        'template_title': template.title,
+        'total_indicators': total_indicators,
+        'assigned_indicators': assigned_indicators,
+        'indicators_with_evidence': indicators_with_evidence,
+    }
