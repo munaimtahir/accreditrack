@@ -125,13 +125,13 @@ class EvidenceViewSet(viewsets.ModelViewSet):
         evidence = serializer.save(uploaded_by=request.user)
         
         # Auto-update assignment status if evidence is added
-        if evidence.item_status.assignment.status == 'NOT_STARTED':
-            evidence.item_status.assignment.status = 'IN_PROGRESS'
+        if evidence.item_status.assignment.status == 'NotStarted':
+            evidence.item_status.assignment.status = 'InProgress'
             evidence.item_status.assignment.save()
         
         # Auto-update item status if no evidence existed before
-        if evidence.item_status.status == 'NOT_STARTED':
-            evidence.item_status.status = 'IN_PROGRESS'
+        if evidence.item_status.status == 'NotStarted':
+            evidence.item_status.status = 'InProgress'
             evidence.item_status.save()
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
