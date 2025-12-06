@@ -14,7 +14,8 @@ from .services import (
     get_pending_items,
     get_module_stats,
     get_module_category_breakdown,
-    get_user_assignments
+    get_user_assignments,
+    get_template_stats
 )
 from .serializers import DashboardSummarySerializer, PendingItemSerializer
 from modules.models import Module, UserModuleRole
@@ -207,3 +208,26 @@ def user_assignments(request):
     assignments = get_user_assignments(request.user, module_id=module_id)
     
     return Response(assignments)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def template_stats(request):
+    """Get template-specific statistics."""
+    template_code = request.query_params.get('template_code')
+    template_id = request.query_params.get('template_id')
+    module_code = request.query_params.get('module_code')
+    
+    stats = get_template_stats(
+        template_code=template_code,
+        template_id=template_id,
+        module_code=module_code
+    )
+    
+    if not stats:
+        return Response(
+            {'detail': 'Template not found.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    return Response(stats)
