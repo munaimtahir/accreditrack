@@ -69,42 +69,80 @@ class EvidenceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Validate file
+        # Get evidence type from request
+        evidence_type = request.data.get('evidence_type', 'file')
+        
+        # Validate file (only required for file/image types)
         file = request.FILES.get('file')
-        if not file:
-            return Response(
-                {'detail': 'File is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        note = request.data.get('note', '')
+        reference_code = request.data.get('reference_code', '')
         
-        # Check file size (10MB limit)
-        if file.size > 10 * 1024 * 1024:
-            return Response(
-                {'detail': 'File size exceeds 10MB limit'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Check allowed MIME types
-        allowed_types = [
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'image/jpeg',
-            'image/png',
-            'text/plain',
-        ]
-        if file.content_type not in allowed_types:
-            return Response(
-                {'detail': f'File type {file.content_type} not allowed. Allowed types: {", ".join(allowed_types)}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if evidence_type in ['file', 'image']:
+            if not file:
+                return Response(
+                    {'detail': 'File is required for file/image type evidence'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check file size (10MB limit)
+            if file.size > 10 * 1024 * 1024:
+                return Response(
+                    {'detail': 'File size exceeds 10MB limit'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check allowed MIME types
+            allowed_types = [
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'image/jpeg',
+                'image/png',
+                'text/plain',
+            ]
+            if file.content_type not in allowed_types:
+                return Response(
+                    {'detail': f'File type {file.content_type} not allowed. Allowed types: {", ".join(allowed_types)}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        elif evidence_type in ['note', 'reference']:
+            # For note/reference types, require either note or reference_code
+            if not note and not reference_code:
+                return Response(
+                    {'detail': 'Note or reference code is required for note/reference type evidence'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         
         # Create evidence
         data = request.data.copy()
         data['item_status'] = item_status_id
+        if 'evidence_type' not in data:
+            # Auto-detect evidence type if not provided
+            if file:
+                if file.content_type and file.content_type.startswith('image/'):
+                    data['evidence_type'] = 'image'
+                else:
+                    data['evidence_type'] = 'file'
+            elif note:
+                data['evidence_type'] = 'note'
+            elif reference_code:
+                data['evidence_type'] = 'reference'
+            else:
+                data['evidence_type'] = 'file'
+        
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(uploaded_by=request.user)
+        evidence = serializer.save(uploaded_by=request.user)
+        
+        # Auto-update assignment status if evidence is added
+        if evidence.item_status.assignment.status == 'NOT_STARTED':
+            evidence.item_status.assignment.status = 'IN_PROGRESS'
+            evidence.item_status.assignment.save()
+        
+        # Auto-update item status if no evidence existed before
+        if evidence.item_status.status == 'NOT_STARTED':
+            evidence.item_status.status = 'IN_PROGRESS'
+            evidence.item_status.save()
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
