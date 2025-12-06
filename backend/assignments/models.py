@@ -4,13 +4,18 @@ Assignments app models: Assignment, ItemStatus
 from django.db import models
 from core.models import BaseModel
 
+# Constants
+USER_MODEL = 'accounts.User'
+
 
 class Assignment(BaseModel):
     """Assignment model linking a proforma template to a department or users."""
     STATUS_CHOICES = [
-        ('NotStarted', 'Not Started'),
-        ('InProgress', 'In Progress'),
-        ('Completed', 'Completed'),
+        ('NOT_STARTED', 'Not Started'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('PENDING_REVIEW', 'Pending Review'),
+        ('COMPLETED', 'Completed'),
+        ('VERIFIED', 'Verified'),
     ]
     
     SCOPE_TYPE_CHOICES = [
@@ -32,7 +37,7 @@ class Assignment(BaseModel):
         blank=True
     )
     assigned_to = models.ManyToManyField(
-        'accounts.User',
+        USER_MODEL,
         related_name='assignments',
         blank=True
     )
@@ -58,7 +63,7 @@ class Assignment(BaseModel):
     instructions = models.TextField(blank=True)
     start_date = models.DateField()
     due_date = models.DateField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NotStarted')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NOT_STARTED')
     
     class Meta:
         db_table = 'assignments'
@@ -76,11 +81,12 @@ class Assignment(BaseModel):
 class ItemStatus(BaseModel):
     """ItemStatus model tracking the status of each item in an assignment."""
     STATUS_CHOICES = [
-        ('NotStarted', 'Not Started'),
-        ('InProgress', 'In Progress'),
-        ('Submitted', 'Submitted'),
-        ('Verified', 'Verified'),
-        ('Rejected', 'Rejected'),
+        ('NOT_STARTED', 'Not Started'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('PENDING_REVIEW', 'Pending Review'),
+        ('COMPLETED', 'Completed'),
+        ('VERIFIED', 'Verified'),
+        ('REJECTED', 'Rejected'),
     ]
     
     assignment = models.ForeignKey(
@@ -93,10 +99,10 @@ class ItemStatus(BaseModel):
         on_delete=models.CASCADE,
         related_name='item_statuses'
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NotStarted')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NOT_STARTED')
     completion_percent = models.SmallIntegerField(default=0)  # 0-100
     last_updated_by = models.ForeignKey(
-        'accounts.User',
+        USER_MODEL,
         on_delete=models.SET_NULL,
         related_name='updated_item_statuses',
         null=True
@@ -120,15 +126,19 @@ class AssignmentUpdate(BaseModel):
         related_name='updates'
     )
     user = models.ForeignKey(
-        'accounts.User',
+        USER_MODEL,
         on_delete=models.CASCADE,
         related_name='assignment_updates'
     )
-    status = models.CharField(
+    status_before = models.CharField(
         max_length=20,
         choices=Assignment.STATUS_CHOICES,
-        blank=True,
-        null=True
+        blank=True
+    )
+    status_after = models.CharField(
+        max_length=20,
+        choices=Assignment.STATUS_CHOICES,
+        blank=True
     )
     note = models.TextField()
     
