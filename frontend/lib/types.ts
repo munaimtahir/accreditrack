@@ -57,8 +57,12 @@ export interface ProformaSection {
   code: string;
   title: string;
   weight: number;
+  section_type?: 'CATEGORY' | 'STANDARD';
+  parent_id?: string;
+  parent_code?: string;
   items?: ProformaItem[];
   items_count?: number;
+  children?: ProformaSection[];
   created_at: string;
   updated_at: string;
 }
@@ -118,10 +122,12 @@ export interface Evidence {
   description: string;
   note: string;
   reference_code: string;
+  evidence_type: 'file' | 'image' | 'note' | 'reference';
   uploaded_by: string;
   uploaded_by_email: string;
   uploaded_at: string;
   created_at: string;
+  evidence_type: 'file' | 'image' | 'note' | 'reference';
 }
 
 export interface Comment {
@@ -208,6 +214,7 @@ export interface ModuleStats {
   submitted_count: number;
   in_progress_count: number;
   not_started_count: number;
+  rejected_count: number;
   templates_count: number;
   category_breakdown?: CategoryBreakdown[];
 }
@@ -220,6 +227,7 @@ export interface CategoryBreakdown {
   submitted_count: number;
   in_progress_count: number;
   not_started_count: number;
+  rejected_count: number;
   completion_percent: number;
 }
 
@@ -235,8 +243,17 @@ export interface ModuleAssignment {
   instructions: string;
   start_date: string;
   due_date: string;
-  status: string;
+  status: 'NotStarted' | 'InProgress' | 'Completed';
   total_items: number;
   verified_items: number;
   completion_percent: number;
+}
+
+export interface TemplateStats {
+  template_id: string;
+  template_code: string;
+  template_title: string;
+  total_indicators: number;
+  assigned_indicators: number;
+  indicators_with_evidence: number;
 }
