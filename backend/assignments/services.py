@@ -41,7 +41,6 @@ def update_assignment_status(assignment, new_status, user, note=''):
     """
     Update assignment status and create AssignmentUpdate log.
     """
-    old_status = assignment.status
     assignment.status = new_status
     assignment.save()
     

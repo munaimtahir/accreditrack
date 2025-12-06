@@ -127,6 +127,7 @@ export interface Evidence {
   uploaded_by_email: string;
   uploaded_at: string;
   created_at: string;
+  evidence_type: 'file' | 'image' | 'note' | 'reference';
 }
 
 export interface Comment {
@@ -210,16 +211,12 @@ export interface ModuleStats {
   total_items: number;
   overall_completion_percent: number;
   verified_count: number;
-  pending_review_count?: number;
+  submitted_count: number;
   in_progress_count: number;
   not_started_count: number;
-  completed_count?: number;
+  rejected_count: number;
   templates_count: number;
   category_breakdown?: CategoryBreakdown[];
-  category_completion?: CategoryCompletion[];
-  standard_completion?: StandardCompletion[];
-  overdue_assignments?: OverdueAssignment[];
-  overall_completion?: number;
 }
 
 export interface CategoryBreakdown {
@@ -227,41 +224,11 @@ export interface CategoryBreakdown {
   section_title: string;
   total_items: number;
   verified_count: number;
-  pending_review_count?: number;
+  submitted_count: number;
   in_progress_count: number;
   not_started_count: number;
-  completed_count?: number;
+  rejected_count: number;
   completion_percent: number;
-}
-
-export interface CategoryCompletion {
-  code: string;
-  title: string;
-  total_indicators: number;
-  verified_indicators: number;
-  assigned_indicators: number;
-  completion_percent: number;
-}
-
-export interface StandardCompletion {
-  code: string;
-  title: string;
-  category_code: string | null;
-  category_title: string | null;
-  total_indicators: number;
-  verified_indicators: number;
-  completion_percent: number;
-}
-
-export interface OverdueAssignment {
-  assignment_id: string;
-  indicator_code: string;
-  indicator_text: string;
-  section_code: string;
-  due_date: string;
-  status: string;
-  assigned_to: string[];
-  department_name: string | null;
 }
 
 export interface ModuleAssignment {

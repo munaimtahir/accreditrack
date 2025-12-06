@@ -8,7 +8,7 @@ from .views import (
     modules_list,
     module_dashboard,
     user_assignments,
-    template_stats
+    template_stats,
 )
 
 urlpatterns = [

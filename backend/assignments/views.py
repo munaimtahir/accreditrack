@@ -230,7 +230,10 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             )
         
         note = request.data.get('note', 'Assignment submitted for review')
+<<<<<<< HEAD
+=======
         # Note: Assignment model doesn't have PENDING_REVIEW status, using InProgress instead
+>>>>>>> c21e4e8af50074417f4badf980b8cc253535c211
         update_assignment_status(assignment, 'InProgress', request.user, note)
         
         serializer = self.get_serializer(assignment)
@@ -253,7 +256,10 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             )
         
         note = request.data.get('note', 'Assignment verified')
+<<<<<<< HEAD
+=======
         # Note: Assignment model doesn't have VERIFIED status, using Completed instead
+>>>>>>> c21e4e8af50074417f4badf980b8cc253535c211
         update_assignment_status(assignment, 'Completed', request.user, note)
         
         serializer = self.get_serializer(assignment)
@@ -395,7 +401,11 @@ class ItemStatusViewSet(viewsets.ModelViewSet):
         
         if item_status.status != 'Submitted':
             return Response(
+<<<<<<< HEAD
+                {'detail': 'Can only verify items that are submitted for review.'},
+=======
                 {'detail': 'Can only verify items that are submitted.'},
+>>>>>>> c21e4e8af50074417f4badf980b8cc253535c211
                 status=status.HTTP_400_BAD_REQUEST
             )
         

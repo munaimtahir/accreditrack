@@ -65,6 +65,24 @@ class AssignmentSerializer(serializers.ModelSerializer):
         return obj.item_statuses.filter(status='Verified').count()
 
 
+class AssignmentUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for AssignmentUpdate model."""
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_full_name = serializers.CharField(source='user.full_name', read_only=True)
+    
+    class Meta:
+        model = AssignmentUpdate
+        fields = [
+            'id', 'assignment', 'user', 'user_email', 'user_full_name',
+            'status', 'note', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+    
+    def get_verified_count(self, obj):
+        """Get count of verified items."""
+        return obj.item_statuses.filter(status='Verified').count()
+
+
 class AssignmentListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for assignment list view."""
     proforma_template_title = serializers.CharField(source='proforma_template.title', read_only=True)
@@ -93,11 +111,12 @@ class AssignmentUpdateSerializer(serializers.ModelSerializer):
     """Serializer for AssignmentUpdate model."""
     user_email = serializers.EmailField(source='user.email', read_only=True)
     user_full_name = serializers.CharField(source='user.full_name', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
     
     class Meta:
         model = AssignmentUpdate
         fields = [
             'id', 'assignment', 'user', 'user_email', 'user_full_name',
-            'status', 'note', 'created_at', 'updated_at'
+            'status', 'status_display', 'note', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at', 'status_display']
