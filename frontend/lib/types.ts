@@ -59,6 +59,7 @@ export interface ProformaSection {
   weight: number;
   items?: ProformaItem[];
   items_count?: number;
+  children?: ProformaSection[];
   created_at: string;
   updated_at: string;
 }
