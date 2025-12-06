@@ -111,28 +111,19 @@ def get_indicator_completion_stats(proforma_item, assignment=None):
             'pending_review': 0,
             'in_progress': 0,
             'not_started': 0,
-            'completed': 0,
-            'rejected': 0,
             'completion_percent': 0,
         }
     
-    # Use aggregate query to get all counts in one database round-trip
-    stats = item_statuses.aggregate(
-        verified=Count('id', filter=Q(status='VERIFIED')),
-        pending_review=Count('id', filter=Q(status='PENDING_REVIEW')),
-        in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
-        not_started=Count('id', filter=Q(status='NOT_STARTED')),
-        completed=Count('id', filter=Q(status='COMPLETED')),
-        rejected=Count('id', filter=Q(status='REJECTED')),
-    )
+    verified = item_statuses.filter(status='VERIFIED').count()
+    pending_review = item_statuses.filter(status='PENDING_REVIEW').count()
+    in_progress = item_statuses.filter(status='IN_PROGRESS').count()
+    not_started = item_statuses.filter(status='NOT_STARTED').count()
     
     return {
         'total': total,
-        'verified': stats['verified'],
-        'pending_review': stats['pending_review'],
-        'in_progress': stats['in_progress'],
-        'not_started': stats['not_started'],
-        'completed': stats['completed'],
-        'rejected': stats['rejected'],
-        'completion_percent': int((stats['verified'] / total) * 100) if total > 0 else 0,
+        'verified': verified,
+        'pending_review': pending_review,
+        'in_progress': in_progress,
+        'not_started': not_started,
+        'completion_percent': int((verified / total) * 100) if total > 0 else 0,
     }
