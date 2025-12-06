@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import apiClient from '@/lib/api';
@@ -18,6 +18,7 @@ export default function ModuleDashboardPage() {
   const [stats, setStats] = useState<ModuleStats | null>(null);
   const [templates, setTemplates] = useState<ProformaTemplate[]>([]);
   const [templateStats, setTemplateStats] = useState<TemplateStats | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,15 +56,38 @@ export default function ModuleDashboardPage() {
     }
   };
 
-  const fetchTemplateStats = async (templateCode: string) => {
+  const fetchTemplateStats = async (templateId: string) => {
     try {
       const response = await apiClient.instance.get('/dashboard/template-stats/', {
-        params: { template_code: templateCode }
+        params: { template_id: templateId }
       });
       setTemplateStats(response.data);
     } catch (error) {
       console.error('Failed to fetch template stats:', error);
     }
+  };
+
+  useEffect(() => {
+    if (templates.length === 0) {
+      setSelectedTemplateId(null);
+      setTemplateStats(null);
+      return;
+    }
+    
+    setSelectedTemplateId((current) => current ?? templates[0].id);
+  }, [templates]);
+
+  useEffect(() => {
+    if (selectedTemplateId) {
+      fetchTemplateStats(selectedTemplateId);
+    } else {
+      setTemplateStats(null);
+    }
+  }, [selectedTemplateId]);
+
+  const handleTemplateChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value;
+    setSelectedTemplateId(value || null);
   };
 
   if (loading) {
@@ -88,10 +112,10 @@ export default function ModuleDashboardPage() {
 
   const statusData = [
     { name: 'Verified', value: stats.verified_count || 0, color: COLORS[1] },
-    { name: 'Pending Review', value: stats.pending_review_count || 0, color: COLORS[2] },
+    { name: 'Submitted', value: stats.submitted_count || 0, color: COLORS[2] },
     { name: 'In Progress', value: stats.in_progress_count || 0, color: COLORS[0] },
     { name: 'Not Started', value: stats.not_started_count || 0, color: COLORS[3] },
-    { name: 'Completed', value: stats.completed_count || 0, color: COLORS[4] },
+    { name: 'Rejected', value: stats.rejected_count || 0, color: COLORS[4] },
   ].filter(item => item.value > 0);
 
   return (
@@ -110,53 +134,81 @@ export default function ModuleDashboardPage() {
         )}
       </div>
 
-      {templateStats && (
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Indicators</CardTitle>
-              <CardDescription>In PHC MSDS Template</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {templateStats.total_indicators}
-              </div>
-            </CardContent>
-          </Card>
+      {templates.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Template Insights</h2>
+              <p className="text-sm text-gray-600">Track indicator coverage per template</p>
+            </div>
+            <div className="flex flex-col gap-1 text-sm text-gray-600">
+              <label htmlFor="template-select" className="font-medium text-gray-800">
+                Select template
+              </label>
+              <select
+                id="template-select"
+                className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                value={selectedTemplateId ?? ''}
+                onChange={handleTemplateChange}
+              >
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.title}{template.code ? ` (${template.code})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Assigned Indicators</CardTitle>
-              <CardDescription>With at least one assignment</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {templateStats.assigned_indicators}
-              </div>
-              <div className="text-sm text-gray-500 mt-1">
-                {templateStats.total_indicators > 0 
-                  ? `${Math.round((templateStats.assigned_indicators / templateStats.total_indicators) * 100)}% of total`
-                  : '0%'}
-              </div>
-            </CardContent>
-          </Card>
+          {templateStats && (
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Total Indicators</CardTitle>
+                  <CardDescription>{templateStats.template_title}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">
+                    {templateStats.total_indicators}
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Indicators with Evidence</CardTitle>
-              <CardDescription>With at least one evidence file</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {templateStats.indicators_with_evidence}
-              </div>
-              <div className="text-sm text-gray-500 mt-1">
-                {templateStats.total_indicators > 0 
-                  ? `${Math.round((templateStats.indicators_with_evidence / templateStats.total_indicators) * 100)}% of total`
-                  : '0%'}
-              </div>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Assigned Indicators</CardTitle>
+                  <CardDescription>With at least one assignment</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">
+                    {templateStats.assigned_indicators}
+                  </div>
+                  <div className="text-sm text-gray-500 mt-1">
+                    {templateStats.total_indicators > 0 
+                      ? `${Math.round((templateStats.assigned_indicators / templateStats.total_indicators) * 100)}% of total`
+                      : '0%'}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Indicators with Evidence</CardTitle>
+                  <CardDescription>At least one evidence file</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">
+                    {templateStats.indicators_with_evidence}
+                  </div>
+                  <div className="text-sm text-gray-500 mt-1">
+                    {templateStats.total_indicators > 0 
+                      ? `${Math.round((templateStats.indicators_with_evidence / templateStats.total_indicators) * 100)}% of total`
+                      : '0%'}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       )}
 
@@ -306,12 +358,8 @@ export default function ModuleDashboardPage() {
                 <span className="text-2xl font-bold text-green-600">{stats.verified_count}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                <span className="font-medium">Pending Review</span>
-                <span className="text-2xl font-bold text-yellow-600">{stats.pending_review_count || 0}</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                <span className="font-medium">Completed</span>
-                <span className="text-2xl font-bold text-purple-600">{stats.completed_count || 0}</span>
+                <span className="font-medium">Submitted</span>
+                <span className="text-2xl font-bold text-yellow-600">{stats.submitted_count || 0}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                 <span className="font-medium">In Progress</span>
@@ -320,6 +368,10 @@ export default function ModuleDashboardPage() {
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <span className="font-medium">Not Started</span>
                 <span className="text-2xl font-bold text-gray-600">{stats.not_started_count}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                <span className="font-medium">Rejected</span>
+                <span className="text-2xl font-bold text-red-600">{stats.rejected_count}</span>
               </div>
             </div>
           </CardContent>

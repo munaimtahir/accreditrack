@@ -112,10 +112,9 @@ def get_indicator_completion_stats(proforma_item, assignment=None):
             'completion_percent': 0,
         }
     
-    # Use aggregate query to get all counts in one database round-trip
     stats = item_statuses.aggregate(
         verified=Count('id', filter=Q(status='Verified')),
-        pending_review=Count('id', filter=Q(status='Submitted')),
+        submitted=Count('id', filter=Q(status='Submitted')),
         in_progress=Count('id', filter=Q(status='InProgress')),
         not_started=Count('id', filter=Q(status='NotStarted')),
     )
@@ -123,7 +122,7 @@ def get_indicator_completion_stats(proforma_item, assignment=None):
     return {
         'total': total,
         'verified': stats['verified'],
-        'pending_review': stats['pending_review'],
+        'pending_review': stats['submitted'],
         'in_progress': stats['in_progress'],
         'not_started': stats['not_started'],
         'completion_percent': int((stats['verified'] / total) * 100) if total > 0 else 0,
