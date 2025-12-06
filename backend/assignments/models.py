@@ -4,6 +4,9 @@ Assignments app models: Assignment, ItemStatus
 from django.db import models
 from core.models import BaseModel
 
+# Constants
+USER_MODEL = 'accounts.User'
+
 
 class Assignment(BaseModel):
     """Assignment model linking a proforma template to a department or users."""
@@ -34,7 +37,7 @@ class Assignment(BaseModel):
         blank=True
     )
     assigned_to = models.ManyToManyField(
-        'accounts.User',
+        USER_MODEL,
         related_name='assignments',
         blank=True
     )
@@ -99,7 +102,7 @@ class ItemStatus(BaseModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NOT_STARTED')
     completion_percent = models.SmallIntegerField(default=0)  # 0-100
     last_updated_by = models.ForeignKey(
-        'accounts.User',
+        USER_MODEL,
         on_delete=models.SET_NULL,
         related_name='updated_item_statuses',
         null=True
@@ -123,21 +126,19 @@ class AssignmentUpdate(BaseModel):
         related_name='updates'
     )
     user = models.ForeignKey(
-        'accounts.User',
+        USER_MODEL,
         on_delete=models.CASCADE,
         related_name='assignment_updates'
     )
     status_before = models.CharField(
         max_length=20,
         choices=Assignment.STATUS_CHOICES,
-        blank=True,
-        null=True
+        blank=True
     )
     status_after = models.CharField(
         max_length=20,
         choices=Assignment.STATUS_CHOICES,
-        blank=True,
-        null=True
+        blank=True
     )
     note = models.TextField()
     
