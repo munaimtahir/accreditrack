@@ -29,9 +29,9 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
-# Check if docker-compose is available
-if ! command -v docker-compose &> /dev/null; then
-    echo -e "${RED}❌ Error: docker-compose is not installed${NC}"
+# Check if docker compose is available
+if ! docker compose version &> /dev/null; then
+    echo -e "${RED}❌ Error: docker compose is not installed${NC}"
     exit 1
 fi
 
@@ -48,29 +48,29 @@ fi
 
 # Build and start services
 echo -e "${YELLOW}🔨 Building Docker images...${NC}"
-docker-compose build --no-cache
+docker compose build --no-cache
 
 echo -e "${YELLOW}🗄️  Starting database...${NC}"
-docker-compose up -d db
+docker compose up -d db
 
 # Wait for database to be ready
 echo -e "${YELLOW}⏳ Waiting for database to be ready...${NC}"
 sleep 10
 
 echo -e "${YELLOW}🔄 Running database migrations...${NC}"
-docker-compose run --rm backend python config/manage.py migrate
+docker compose run --rm backend python config/manage.py migrate
 
 echo -e "${YELLOW}📦 Collecting static files...${NC}"
-docker-compose run --rm backend python config/manage.py collectstatic --noinput
+docker compose run --rm backend python config/manage.py collectstatic --noinput
 
 echo -e "${YELLOW}🚀 Starting all services...${NC}"
-docker-compose up -d
+docker compose up -d
 
 echo -e "${GREEN}✅ Deployment completed successfully!${NC}"
 echo -e "${YELLOW}📊 Checking service status...${NC}"
-docker-compose ps
+docker compose ps
 
 echo -e "${GREEN}🎉 Your application should now be running!${NC}"
 echo -e "${YELLOW}💡 Access your application at: http://your-google-cloud-ip${NC}"
-echo -e "${YELLOW}💡 To view logs: docker-compose logs -f${NC}"
-echo -e "${YELLOW}💡 To stop services: docker-compose down${NC}"
+echo -e "${YELLOW}💡 To view logs: docker compose logs -f${NC}"
+echo -e "${YELLOW}💡 To stop services: docker compose down${NC}"
