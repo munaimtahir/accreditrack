@@ -110,6 +110,7 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
+# USE_TZ is set globally for the entire application, not just in production
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)

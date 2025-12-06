@@ -57,7 +57,7 @@ docker compose up -d db
 echo -e "${YELLOW}⏳ Waiting for database to be ready...${NC}"
 MAX_TRIES=60
 TRIES=0
-until docker compose exec db pg_isready -U accreditrack > /dev/null 2>&1; do
+until docker compose exec db pg_isready -U "${POSTGRES_USER:-accreditrack}" > /dev/null 2>&1; do
     TRIES=$((TRIES+1))
     if [ "$TRIES" -ge "$MAX_TRIES" ]; then
         echo -e "${RED}❌ Error: Database did not become ready in time${NC}"
