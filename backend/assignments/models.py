@@ -124,11 +124,15 @@ class AssignmentUpdate(BaseModel):
         on_delete=models.CASCADE,
         related_name='assignment_updates'
     )
-    status = models.CharField(
+    status_before = models.CharField(
         max_length=20,
         choices=Assignment.STATUS_CHOICES,
-        blank=True,
-        null=True
+        blank=True
+    )
+    status_after = models.CharField(
+        max_length=20,
+        choices=Assignment.STATUS_CHOICES,
+        blank=True
     )
     note = models.TextField()
     
