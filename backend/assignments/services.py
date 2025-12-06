@@ -10,31 +10,31 @@ def calculate_indicator_status(item_status):
     """
     Calculate indicator status based on evidence and assignment status.
     
-    Returns: NOT_ASSIGNED | NOT_STARTED | IN_PROGRESS | PENDING_REVIEW | COMPLETED | VERIFIED
+    Returns: NOT_ASSIGNED | NotStarted | InProgress | Submitted | Verified | Rejected
     """
     if not item_status:
         return 'NOT_ASSIGNED'
     
     # Check if verified
-    if item_status.status == 'VERIFIED':
-        return 'VERIFIED'
+    if item_status.status == 'Verified':
+        return 'Verified'
     
-    # Check if submitted/pending review
-    if item_status.status == 'PENDING_REVIEW':
-        return 'PENDING_REVIEW'
+    # Check if submitted
+    if item_status.status == 'Submitted':
+        return 'Submitted'
     
-    # Check if completed
-    if item_status.status == 'COMPLETED':
-        return 'COMPLETED'
+    # Check if rejected
+    if item_status.status == 'Rejected':
+        return 'Rejected'
     
     # Check if evidence exists
     has_evidence = Evidence.objects.filter(item_status=item_status).exists()
     
     if has_evidence:
-        return 'IN_PROGRESS'
+        return 'InProgress'
     
     # Default to not started
-    return 'NOT_STARTED'
+    return 'NotStarted'
 
 
 def update_assignment_status(assignment, new_status, user, note=''):
@@ -49,8 +49,7 @@ def update_assignment_status(assignment, new_status, user, note=''):
     AssignmentUpdate.objects.create(
         assignment=assignment,
         user=user,
-        status_before=old_status,
-        status_after=new_status,
+        status=new_status,
         note=note
     )
     
@@ -67,16 +66,16 @@ def auto_update_assignment_status(assignment):
         return
     
     # Check if all items are verified
-    all_verified = all(item.status == 'VERIFIED' for item in item_statuses)
-    if all_verified and assignment.status != 'VERIFIED':
-        assignment.status = 'VERIFIED'
+    all_verified = all(item.status == 'Verified' for item in item_statuses)
+    if all_verified and assignment.status != 'Completed':
+        assignment.status = 'Completed'
         assignment.save()
         return
     
-    # Check if any items are pending review
-    any_pending = any(item.status == 'PENDING_REVIEW' for item in item_statuses)
-    if any_pending and assignment.status not in ['PENDING_REVIEW', 'VERIFIED']:
-        assignment.status = 'PENDING_REVIEW'
+    # Check if any items are submitted
+    any_submitted = any(item.status == 'Submitted' for item in item_statuses)
+    if any_submitted and assignment.status == 'NotStarted':
+        assignment.status = 'InProgress'
         assignment.save()
         return
     
@@ -85,8 +84,8 @@ def auto_update_assignment_status(assignment):
         item_status__assignment=assignment
     ).exists()
     
-    if has_evidence and assignment.status == 'NOT_STARTED':
-        assignment.status = 'IN_PROGRESS'
+    if has_evidence and assignment.status == 'NotStarted':
+        assignment.status = 'InProgress'
         assignment.save()
         return
 
@@ -114,15 +113,15 @@ def get_indicator_completion_stats(proforma_item, assignment=None):
             'completion_percent': 0,
         }
     
-    verified = item_statuses.filter(status='VERIFIED').count()
-    pending_review = item_statuses.filter(status='PENDING_REVIEW').count()
-    in_progress = item_statuses.filter(status='IN_PROGRESS').count()
-    not_started = item_statuses.filter(status='NOT_STARTED').count()
+    verified = item_statuses.filter(status='Verified').count()
+    submitted = item_statuses.filter(status='Submitted').count()
+    in_progress = item_statuses.filter(status='InProgress').count()
+    not_started = item_statuses.filter(status='NotStarted').count()
     
     return {
         'total': total,
         'verified': verified,
-        'pending_review': pending_review,
+        'submitted': submitted,
         'in_progress': in_progress,
         'not_started': not_started,
         'completion_percent': int((verified / total) * 100) if total > 0 else 0,

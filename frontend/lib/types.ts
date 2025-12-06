@@ -89,7 +89,7 @@ export interface Assignment {
   department_id: string;
   start_date: string;
   due_date: string;
-  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'PENDING_REVIEW' | 'COMPLETED' | 'VERIFIED';
+  status: 'NotStarted' | 'InProgress' | 'Completed';
   completion_percent: number;
   items_count: number;
   verified_count: number;
@@ -103,7 +103,7 @@ export interface ItemStatus {
   proforma_item: string;
   proforma_item_code: string;
   proforma_item_text: string;
-  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'PENDING_REVIEW' | 'COMPLETED' | 'VERIFIED' | 'REJECTED';
+  status: 'NotStarted' | 'InProgress' | 'Submitted' | 'Verified' | 'Rejected';
   completion_percent: number;
   last_updated_by: string | null;
   last_updated_by_email: string | null;
@@ -276,7 +276,7 @@ export interface ModuleAssignment {
   instructions: string;
   start_date: string;
   due_date: string;
-  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'PENDING_REVIEW' | 'COMPLETED' | 'VERIFIED';
+  status: 'NotStarted' | 'InProgress' | 'Completed';
   total_items: number;
   verified_items: number;
   completion_percent: number;

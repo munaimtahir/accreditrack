@@ -130,7 +130,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     instructions=instructions,
                     start_date=serializer.validated_data['start_date'],
                     due_date=serializer.validated_data['due_date'],
-                    status=serializer.validated_data.get('status', 'NOT_STARTED')
+                    status=serializer.validated_data.get('status', 'NotStarted')
                 )
                 assignment.assigned_to.add(user_id)
                 
@@ -139,7 +139,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     ItemStatus(
                         assignment=assignment,
                         proforma_item=item,
-                        status='NOT_STARTED',
+                        status='NotStarted',
                         completion_percent=0
                     )
                     for item in items
@@ -159,7 +159,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     instructions=instructions,
                     start_date=serializer.validated_data['start_date'],
                     due_date=serializer.validated_data['due_date'],
-                    status=serializer.validated_data.get('status', 'NOT_STARTED')
+                    status=serializer.validated_data.get('status', 'NotStarted')
                 )
                 
                 # Auto-create ItemStatus for relevant items
@@ -167,7 +167,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     ItemStatus(
                         assignment=assignment,
                         proforma_item=item,
-                        status='NOT_STARTED',
+                        status='NotStarted',
                         completion_percent=0
                     )
                     for item in items
@@ -230,7 +230,8 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             )
         
         note = request.data.get('note', 'Assignment submitted for review')
-        update_assignment_status(assignment, 'PENDING_REVIEW', request.user, note)
+        # Note: Assignment model doesn't have PENDING_REVIEW status, using InProgress instead
+        update_assignment_status(assignment, 'InProgress', request.user, note)
         
         serializer = self.get_serializer(assignment)
         return Response(serializer.data)
@@ -252,7 +253,8 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             )
         
         note = request.data.get('note', 'Assignment verified')
-        update_assignment_status(assignment, 'VERIFIED', request.user, note)
+        # Note: Assignment model doesn't have VERIFIED status, using Completed instead
+        update_assignment_status(assignment, 'Completed', request.user, note)
         
         serializer = self.get_serializer(assignment)
         return Response(serializer.data)
@@ -305,12 +307,12 @@ class ItemStatusViewSet(viewsets.ModelViewSet):
         if new_status:
             current_status = item_status.status
             
-            # Coordinators can: NOT_STARTED -> IN_PROGRESS -> PENDING_REVIEW
+            # Coordinators can: NotStarted -> InProgress -> Submitted
             if is_coordinator and not is_qa_admin:
                 valid_transitions = {
-                    'NOT_STARTED': ['IN_PROGRESS'],
-                    'IN_PROGRESS': ['PENDING_REVIEW', 'NOT_STARTED'],
-                    'PENDING_REVIEW': ['IN_PROGRESS'],
+                    'NotStarted': ['InProgress'],
+                    'InProgress': ['Submitted', 'NotStarted'],
+                    'Submitted': ['InProgress'],
                 }
                 if current_status in valid_transitions:
                     if new_status not in valid_transitions[current_status]:
@@ -319,11 +321,11 @@ class ItemStatusViewSet(viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST
                         )
             
-            # QAAdmins can mark as VERIFIED/REJECTED
-            if is_qa_admin and new_status in ['VERIFIED', 'REJECTED']:
-                if current_status != 'PENDING_REVIEW':
+            # QAAdmins can mark as Verified/Rejected
+            if is_qa_admin and new_status in ['Verified', 'Rejected']:
+                if current_status != 'Submitted':
                     return Response(
-                        {'detail': 'Can only verify/reject items that are PENDING_REVIEW'},
+                        {'detail': 'Can only verify/reject items that are Submitted'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
         
@@ -358,13 +360,13 @@ class ItemStatusViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        if item_status.status not in ['IN_PROGRESS', 'NOT_STARTED']:
+        if item_status.status not in ['InProgress', 'NotStarted']:
             return Response(
                 {'detail': f'Cannot submit item with status {item_status.status} for review.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        item_status.status = 'PENDING_REVIEW'
+        item_status.status = 'Submitted'
         item_status.last_updated_by = request.user
         item_status.save()
         
@@ -391,13 +393,13 @@ class ItemStatusViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        if item_status.status != 'PENDING_REVIEW':
+        if item_status.status != 'Submitted':
             return Response(
-                {'detail': 'Can only verify items that are pending review.'},
+                {'detail': 'Can only verify items that are submitted.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        item_status.status = 'VERIFIED'
+        item_status.status = 'Verified'
         item_status.completion_percent = 100
         item_status.last_updated_by = request.user
         item_status.save()
@@ -430,7 +432,7 @@ class ItemStatusViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        item_status.status = 'IN_PROGRESS'
+        item_status.status = 'InProgress'
         item_status.last_updated_by = request.user
         item_status.save()
         
