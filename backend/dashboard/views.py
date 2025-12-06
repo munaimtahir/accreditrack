@@ -14,7 +14,11 @@ from .services import (
     get_pending_items,
     get_module_stats,
     get_module_category_breakdown,
-    get_user_assignments
+    get_user_assignments,
+    get_module_category_completion,
+    get_module_standard_completion,
+    get_overdue_assignments,
+    calculate_template_score,
 )
 from .serializers import DashboardSummarySerializer, PendingItemSerializer
 from modules.models import Module, UserModuleRole
@@ -59,7 +63,7 @@ def dashboard_summary(request):
             assignment__in=assignments
         )
         total = all_item_statuses.count()
-        verified = all_item_statuses.filter(status='Verified').count()
+        verified = all_item_statuses.filter(status='VERIFIED').count()
         overall_completion = int((verified / total) * 100) if total > 0 else 0
     else:
         overall_completion = 0
@@ -190,9 +194,36 @@ def module_dashboard(request, module_id):
     
     category_breakdown = get_module_category_breakdown(module_id)
     
+    # Get template code from query params (default to PHC-MSDS-2018 for PHC-LAB)
+    template_code = request.query_params.get('template_code', 'PHC-MSDS-2018')
+    
+    # Get category-wise and standard-wise completion
+    category_completion = get_module_category_completion(module_id, template_code=template_code)
+    standard_completion = get_module_standard_completion(module_id, template_code=template_code)
+    
+    # Get overdue assignments
+    overdue_assignments = get_overdue_assignments(module_id, template_code=template_code)
+    
+    # Calculate overall completion
+    templates = ProformaTemplate.objects.filter(module_id=module_id, is_active=True)
+    if template_code:
+        templates = templates.filter(code=template_code)
+    
+    overall_completion = stats.get('overall_completion_percent', 0)
+    if templates.exists():
+        template = templates.first()
+        assignments = Assignment.objects.filter(proforma_template=template)
+        if assignments.exists():
+            score_data = calculate_template_score(template, assignments)
+            overall_completion = score_data.get('score_percent', 0)
+    
     response_data = {
         **stats,
         'category_breakdown': category_breakdown,
+        'category_completion': category_completion,
+        'standard_completion': standard_completion,
+        'overdue_assignments': overdue_assignments,
+        'overall_completion': overall_completion,
     }
     
     return Response(response_data)
