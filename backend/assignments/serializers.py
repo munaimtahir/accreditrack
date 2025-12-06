@@ -57,22 +57,8 @@ class AssignmentSerializer(serializers.ModelSerializer):
         total = obj.item_statuses.count()
         if total == 0:
             return 0
-        verified = obj.item_statuses.filter(status='VERIFIED').count()
+        verified = obj.item_statuses.filter(status='Verified').count()
         return int((verified / total) * 100)
-
-
-class AssignmentUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for AssignmentUpdate model."""
-    user_email = serializers.EmailField(source='user.email', read_only=True)
-    user_full_name = serializers.CharField(source='user.full_name', read_only=True)
-    
-    class Meta:
-        model = AssignmentUpdate
-        fields = [
-            'id', 'assignment', 'user', 'user_email', 'user_full_name',
-            'status_before', 'status_after', 'note', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
 
 
 class AssignmentListSerializer(serializers.ModelSerializer):
@@ -95,7 +81,7 @@ class AssignmentListSerializer(serializers.ModelSerializer):
         total = obj.item_statuses.count()
         if total == 0:
             return 0
-        verified = obj.item_statuses.filter(status='VERIFIED').count()
+        verified = obj.item_statuses.filter(status='Verified').count()
         return int((verified / total) * 100)
 
 
