@@ -7,8 +7,7 @@ from .views import (
     pending_items,
     modules_list,
     module_dashboard,
-    user_assignments,
-    template_stats
+    user_assignments
 )
 
 urlpatterns = [
@@ -17,5 +16,4 @@ urlpatterns = [
     path('modules/', modules_list, name='modules-list'),
     path('modules/<uuid:module_id>/', module_dashboard, name='module-dashboard'),
     path('user-assignments/', user_assignments, name='user-assignments'),
-    path('template-stats/', template_stats, name='template-stats'),
 ]
