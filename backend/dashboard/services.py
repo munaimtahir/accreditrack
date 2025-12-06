@@ -16,7 +16,7 @@ def calculate_assignment_completion(assignment):
     if total_items == 0:
         return 0
     
-    verified_items = assignment.item_statuses.filter(status='VERIFIED').count()
+    verified_items = assignment.item_statuses.filter(status='Verified').count()
     return int((verified_items / total_items) * 100) if total_items > 0 else 0
 
 
@@ -29,7 +29,7 @@ def calculate_section_completion(assignment, section):
     if total == 0:
         return 0
     
-    verified = section_items.filter(status='VERIFIED').count()
+    verified = section_items.filter(status='Verified').count()
     return int((verified / total) * 100) if total > 0 else 0
 
 
@@ -50,21 +50,19 @@ def get_assignment_summary(assignment):
     
     # Use aggregate query to get all counts in one database round-trip
     stats = item_statuses.aggregate(
-        verified=Count('id', filter=Q(status='VERIFIED')),
-        pending_review=Count('id', filter=Q(status='PENDING_REVIEW')),
-        in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
-        not_started=Count('id', filter=Q(status='NOT_STARTED')),
-        completed=Count('id', filter=Q(status='COMPLETED')),
-        rejected=Count('id', filter=Q(status='REJECTED')),
+        verified=Count('id', filter=Q(status='Verified')),
+        submitted=Count('id', filter=Q(status='Submitted')),
+        in_progress=Count('id', filter=Q(status='InProgress')),
+        not_started=Count('id', filter=Q(status='NotStarted')),
+        rejected=Count('id', filter=Q(status='Rejected')),
     )
     
     return {
         'overall_completion_percent': calculate_assignment_completion(assignment),
         'verified_count': stats['verified'],
-        'pending_review_count': stats['pending_review'],
+        'submitted_count': stats['submitted'],
         'in_progress_count': stats['in_progress'],
         'not_started_count': stats['not_started'],
-        'completed_count': stats['completed'],
         'rejected_count': stats['rejected'],
     }
 
@@ -91,7 +89,7 @@ def get_section_summaries(assignment):
             },
             'completion_percent': completion,
             'total_items': item_statuses.count(),
-            'verified_items': item_statuses.filter(status='VERIFIED').count(),
+            'verified_items': item_statuses.filter(status='Verified').count(),
         })
     
     return summaries
@@ -104,7 +102,7 @@ def get_pending_items(user, template_id=None, department_id=None):
         'assignment__proforma_template',
         'assignment__department',
         'proforma_item__section'
-    ).exclude(status='VERIFIED')
+    ).exclude(status='Verified')
     
     # Filter by template if provided
     if template_id:
@@ -164,37 +162,27 @@ def get_module_stats(module_id):
             'templates_count': templates.count(),
         }
     
+    # Use aggregate query to get all counts in one database round-trip
+    module_stats = item_statuses.aggregate(
+        verified=Count('id', filter=Q(status='Verified')),
+        submitted=Count('id', filter=Q(status='Submitted')),
+        in_progress=Count('id', filter=Q(status='InProgress')),
+        not_started=Count('id', filter=Q(status='NotStarted')),
+        rejected=Count('id', filter=Q(status='Rejected')),
+    )
+    
     return {
         'module_id': str(module.id),
         'module_code': module.code,
         'module_display_name': module.display_name,
         'total_assignments': assignments.count(),
         'total_items': total_items,
-        # Use aggregate query to get all counts in one database round-trip
-        module_stats = item_statuses.aggregate(
-            verified=Count('id', filter=Q(status='VERIFIED')),
-            pending_review=Count('id', filter=Q(status='PENDING_REVIEW')),
-            in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
-            not_started=Count('id', filter=Q(status='NOT_STARTED')),
-            completed=Count('id', filter=Q(status='COMPLETED')),
-            rejected=Count('id', filter=Q(status='REJECTED')),
-        )
-        
-        return {
-            'module_id': str(module.id),
-            'module_code': module.code,
-            'module_display_name': module.display_name,
-            'total_assignments': assignments.count(),
-            'total_items': total_items,
-            'overall_completion_percent': int((module_stats['verified'] / total_items) * 100) if total_items > 0 else 0,
-            'verified_count': module_stats['verified'],
-            'pending_review_count': module_stats['pending_review'],
-            'in_progress_count': module_stats['in_progress'],
-            'not_started_count': module_stats['not_started'],
-            'completed_count': module_stats['completed'],
-            'rejected_count': module_stats['rejected'],
-            'templates_count': templates.count(),
-        }
+        'overall_completion_percent': int((module_stats['verified'] / total_items) * 100) if total_items > 0 else 0,
+        'verified_count': module_stats['verified'],
+        'submitted_count': module_stats['submitted'],
+        'in_progress_count': module_stats['in_progress'],
+        'not_started_count': module_stats['not_started'],
+        'rejected_count': module_stats['rejected'],
         'templates_count': templates.count(),
     }
 
@@ -236,12 +224,11 @@ def get_module_category_breakdown(module_id):
             'total_items': total,
             # Use aggregate query to get all counts in one database round-trip
             section_stats = section_item_statuses.aggregate(
-                verified=Count('id', filter=Q(status='VERIFIED')),
-                pending_review=Count('id', filter=Q(status='PENDING_REVIEW')),
-                in_progress=Count('id', filter=Q(status='IN_PROGRESS')),
-                not_started=Count('id', filter=Q(status='NOT_STARTED')),
-                completed=Count('id', filter=Q(status='COMPLETED')),
-                rejected=Count('id', filter=Q(status='REJECTED')),
+                verified=Count('id', filter=Q(status='Verified')),
+                submitted=Count('id', filter=Q(status='Submitted')),
+                in_progress=Count('id', filter=Q(status='InProgress')),
+                not_started=Count('id', filter=Q(status='NotStarted')),
+                rejected=Count('id', filter=Q(status='Rejected')),
             )
             
             breakdown.append({
@@ -249,10 +236,9 @@ def get_module_category_breakdown(module_id):
                 'section_title': section.title,
                 'total_items': total,
                 'verified_count': section_stats['verified'],
-                'pending_review_count': section_stats['pending_review'],
+                'submitted_count': section_stats['submitted'],
                 'in_progress_count': section_stats['in_progress'],
                 'not_started_count': section_stats['not_started'],
-                'completed_count': section_stats['completed'],
                 'rejected_count': section_stats['rejected'],
                 'completion_percent': int((section_stats['verified'] / total) * 100) if total > 0 else 0,
             })
@@ -275,7 +261,7 @@ def get_user_assignments(user, module_id=None):
     result = []
     for assignment in assignments:
         total_items = assignment.item_statuses.count()
-        verified_items = assignment.item_statuses.filter(status='VERIFIED').count()
+        verified_items = assignment.item_statuses.filter(status='Verified').count()
         completion_percent = int((verified_items / total_items) * 100) if total_items > 0 else 0
         
         result.append({
