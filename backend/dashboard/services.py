@@ -237,6 +237,26 @@ def get_module_category_breakdown(module_id):
             'not_started_count': section_stats['not_started'],
             'rejected_count': section_stats['rejected'],
             'completion_percent': int((section_stats['verified'] / total) * 100) if total > 0 else 0,
+            # Use aggregate query to get all counts in one database round-trip
+            section_stats = section_item_statuses.aggregate(
+                verified=Count('id', filter=Q(status='Verified')),
+                submitted=Count('id', filter=Q(status='Submitted')),
+                in_progress=Count('id', filter=Q(status='InProgress')),
+                not_started=Count('id', filter=Q(status='NotStarted')),
+                rejected=Count('id', filter=Q(status='Rejected')),
+            )
+            
+            breakdown.append({
+                'section_code': section.code,
+                'section_title': section.title,
+                'total_items': total,
+                'verified_count': section_stats['verified'],
+                'submitted_count': section_stats['submitted'],
+                'in_progress_count': section_stats['in_progress'],
+                'not_started_count': section_stats['not_started'],
+                'rejected_count': section_stats['rejected'],
+                'completion_percent': int((section_stats['verified'] / total) * 100) if total > 0 else 0,
+            })
         })
     
     return breakdown
@@ -281,8 +301,8 @@ def get_user_assignments(user, module_id=None):
 
 
 def get_template_stats(template_code=None, template_id=None, module_code=None):
-    """Get template-specific statistics including total indicators, assignments, and evidence."""
-    template = None
+    """Get template-specific statistics including total indicators, assigned indicators, and indicators with evidence."""
+    from evidence.models import Evidence
     
     if template_id:
         try:
@@ -336,17 +356,35 @@ def get_module_category_completion(module_id, template_code=None):
     try:
         module = Module.objects.get(id=module_id, is_active=True)
     except Module.DoesNotExist:
-        return []
-    
+        return []    
     templates = ProformaTemplate.objects.filter(module=module, is_active=True)
     if template_code:
         templates = templates.filter(code=template_code)
+    # Get template
+    if template_id:
+        try:
+            template = ProformaTemplate.objects.get(id=template_id, is_active=True)
+        except ProformaTemplate.DoesNotExist:
+            return None
+    elif template_code:
+        try:
+            template = ProformaTemplate.objects.get(code=template_code, is_active=True)
+        except ProformaTemplate.DoesNotExist:
+            return None
+    elif module_code:
+        # Get first template for module
+        templates = ProformaTemplate.objects.filter(module__code=module_code, is_active=True)
+        if not templates.exists():
+            return None
+        template = templates.first()
+    else:
+        return None
     
-    template_ids = list(templates.values_list('id', flat=True))
-    if not template_ids:
-        return []
+    # Get all indicators (items) in the template
+    total_indicators = ProformaItem.objects.filter(section__template=template).count()
     
     assignments = Assignment.objects.filter(proforma_template_id__in=template_ids)
+    # Get category sections (section_type='CATEGORY')
     categories = ProformaSection.objects.filter(
         template_id__in=template_ids,
         section_type='CATEGORY',
@@ -517,13 +555,18 @@ def calculate_category_score(category_section, assignments):
         item_status = item_statuses_dict.get(indicator.id)
         if item_status:
             total_score += calculate_indicator_score(item_status)
-    
-    completion_percent = (
-        int((total_score / max_possible_score) * 100) if max_possible_score > 0 else 0
-    )
+=======
+    # Get indicators that have at least one evidence record
+    indicators_with_evidence = ProformaItem.objects.filter(
+        section__template=template,
+        item_statuses__evidence_files__isnull=False
+    ).distinct().count()
     
     return {
-        'total_score': total_score,
-        'max_possible_score': max_possible_score,
-        'completion_percent': completion_percent,
+        'template_id': str(template.id),
+        'template_code': template.code,
+        'template_title': template.title,
+        'total_indicators': total_indicators,
+        'assigned_indicators': assigned_indicators,
+        'indicators_with_evidence': indicators_with_evidence,
     }

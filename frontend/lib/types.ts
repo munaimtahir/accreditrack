@@ -243,7 +243,7 @@ export interface ModuleAssignment {
   instructions: string;
   start_date: string;
   due_date: string;
-  status: string;
+  status: 'NotStarted' | 'InProgress' | 'Completed';
   total_items: number;
   verified_items: number;
   completion_percent: number;
