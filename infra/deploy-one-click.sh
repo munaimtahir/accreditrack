@@ -59,26 +59,54 @@ if ! docker compose version &> /dev/null; then
 fi
 echo -e "${GREEN}✓ Docker Compose is available${NC}"
 
-# Check secrets directory
+# Check and create secrets directory
 if [ ! -d "./secrets" ]; then
-    echo -e "${RED}❌ Error: secrets directory not found${NC}"
-    echo -e "${YELLOW}💡 Creating secrets directory...${NC}"
+    echo -e "${YELLOW}📁 Creating secrets directory...${NC}"
     mkdir -p ./secrets
-    echo -e "${RED}❌ Please create secrets/backend.env and secrets/frontend.env${NC}"
-    exit 1
 fi
 
-# Check environment files
+# Create backend.env if it doesn't exist
 if [ ! -f "./secrets/backend.env" ]; then
-    echo -e "${RED}❌ Error: secrets/backend.env not found${NC}"
-    exit 1
+    echo -e "${YELLOW}📝 Creating secrets/backend.env with production values...${NC}"
+    cat > ./secrets/backend.env << 'EOF'
+# Django Settings
+SECRET_KEY=5fbv&1sh_!&10k)wlqa@i^a!7%^-uecy$v8&e^zwbqz%7j@$4a
+DEBUG=False
+ALLOWED_HOSTS=34.123.45.67,localhost,127.0.0.1,accreditrack.com,www.accreditrack.com
+
+# Database Configuration
+DB_NAME=accreditrack
+DB_USER=accreditrack
+DB_PASSWORD=OQXDXwq29vxo/mFidP8mLN9i3P/xZcK+0FEcg/girzA=
+DB_HOST=db
+DB_PORT=5432
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS=http://34.123.45.67,https://34.123.45.67,http://accreditrack.com,https://accreditrack.com,http://www.accreditrack.com,https://www.accreditrack.com
+
+# Security Settings
+SECURE_SSL_REDIRECT=False
+
+# Optional: Email Configuration (uncomment and configure if needed)
+# EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+# EMAIL_HOST=smtp.gmail.com
+# EMAIL_PORT=587
+# EMAIL_USE_TLS=True
+# EMAIL_HOST_USER=your-email@gmail.com
+# EMAIL_HOST_PASSWORD=your-app-password
+EOF
 fi
 
+# Create frontend.env if it doesn't exist
 if [ ! -f "./secrets/frontend.env" ]; then
-    echo -e "${RED}❌ Error: secrets/frontend.env not found${NC}"
-    exit 1
+    echo -e "${YELLOW}📝 Creating secrets/frontend.env with production values...${NC}"
+    cat > ./secrets/frontend.env << 'EOF'
+# API Base URL - Production API endpoint
+NEXT_PUBLIC_API_URL=http://34.123.45.67/api/v1
+EOF
 fi
-echo -e "${GREEN}✓ Environment files found${NC}"
+
+echo -e "${GREEN}✓ Environment files ready${NC}"
 
 # Validate environment variables
 echo -e "${BLUE}🔍 Validating environment configuration...${NC}"
