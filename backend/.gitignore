@@ -38,33 +38,11 @@ staticfiles/
 media/
 *.pot
 *.pyc
+logs/
 
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
-.npm
-.eslintcache
-.node_repl_history
-*.tsbuildinfo
-
-# Next.js
-.next/
-out/
-build/
-dist/
-.vercel
-*.tsbuildinfo
-
-# Environment variables (keep examples)
+# Environment variables
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
 .env.production
 .env.*.local
 !.env.example
@@ -77,12 +55,3 @@ dist/
 *.swo
 *~
 .DS_Store
-
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
