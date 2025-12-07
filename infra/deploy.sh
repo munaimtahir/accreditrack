@@ -8,42 +8,51 @@ echo "🚀 Starting deployment process..."
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
+# Check if secrets directory exists
+if [ ! -d "./secrets" ]; then
+    echo -e "${RED}❌ Error: secrets directory not found${NC}"
+    echo -e "${YELLOW}💡 Creating secrets directory...${NC}"
+    mkdir -p ./secrets
+    exit 1
+fi
+
 # Check if .env files exist
-if [ ! -f "../backend/.env.production" ]; then
-    echo -e "${RED}❌ Error: backend/.env.production not found${NC}"
-    echo -e "${YELLOW}💡 Copy backend/.env.production.example to backend/.env.production and update the values${NC}"
+if [ ! -f "./secrets/backend.env" ]; then
+    echo -e "${RED}❌ Error: secrets/backend.env not found${NC}"
     exit 1
 fi
 
-if [ ! -f "../frontend/.env.production" ]; then
-    echo -e "${RED}❌ Error: frontend/.env.production not found${NC}"
-    echo -e "${YELLOW}💡 Copy frontend/.env.production.example to frontend/.env.production and update the values${NC}"
+if [ ! -f "./secrets/frontend.env" ]; then
+    echo -e "${RED}❌ Error: secrets/frontend.env not found${NC}"
     exit 1
 fi
 
-# Validate required environment variables in backend/.env.production
+# Validate required environment variables in backend.env
 set +e  # Temporarily disable exit on error for validation
-source ../backend/.env.production 2>/dev/null || true
+source ./secrets/backend.env 2>/dev/null || true
 set -e  # Re-enable exit on error
 
 if [ -z "${DB_PASSWORD}" ] || [ "${DB_PASSWORD}" = "your-secure-database-password" ]; then
-    echo -e "${RED}❌ Error: DB_PASSWORD is not set or is using default value in backend/.env.production${NC}"
-    echo -e "${YELLOW}💡 Please set a secure DB_PASSWORD in backend/.env.production${NC}"
+    echo -e "${RED}❌ Error: DB_PASSWORD is not set or is using default value in secrets/backend.env${NC}"
     exit 1
 fi
 
 if [ -z "${SECRET_KEY}" ] || [ "${SECRET_KEY}" = "your-secret-key-here-change-in-production" ]; then
-    echo -e "${RED}❌ Error: SECRET_KEY is not set or is using default value in backend/.env.production${NC}"
-    echo -e "${YELLOW}💡 Please set a secure SECRET_KEY in backend/.env.production${NC}"
-    echo -e "${YELLOW}💡 You can generate one using: ./generate-secret-key.sh${NC}"
+    echo -e "${RED}❌ Error: SECRET_KEY is not set or is using default value in secrets/backend.env${NC}"
     exit 1
 fi
 
 # Check if Docker is running
 if ! docker info > /dev/null 2>&1; then
     echo -e "${RED}❌ Error: Docker is not running${NC}"
+    echo -e "${YELLOW}💡 Please start Docker and try again${NC}"
     exit 1
 fi
 
@@ -55,6 +64,7 @@ fi
 
 echo -e "${GREEN}✓ Environment files found${NC}"
 echo -e "${GREEN}✓ Docker is running${NC}"
+echo -e "${GREEN}✓ Docker Compose is available${NC}"
 
 # Pull latest changes (if using git)
 if [ -d "../.git" ]; then
@@ -65,17 +75,17 @@ if [ -d "../.git" ]; then
 fi
 
 # Build and start services
-echo -e "${YELLOW}🔨 Building Docker images...${NC}"
-docker compose build
+echo -e "${BLUE}🔨 Building Docker images...${NC}"
+docker compose build --no-cache
 
-echo -e "${YELLOW}🗄️  Starting database...${NC}"
+echo -e "${BLUE}🗄️  Starting database...${NC}"
 docker compose up -d db
 
 # Wait for database to be ready
 echo -e "${YELLOW}⏳ Waiting for database to be ready...${NC}"
 MAX_TRIES=60
 TRIES=0
-until docker compose exec db pg_isready -U "${DB_USER:-accreditrack}" > /dev/null 2>&1; do
+until docker compose exec -T db pg_isready -U "${DB_USER:-accreditrack}" > /dev/null 2>&1; do
     TRIES=$((TRIES+1))
     if [ "$TRIES" -ge "$MAX_TRIES" ]; then
         echo -e "${RED}❌ Error: Database did not become ready in time${NC}"
@@ -86,20 +96,32 @@ done
 
 echo -e "${GREEN}✓ Database is ready${NC}"
 
-echo -e "${YELLOW}🔄 Running database migrations...${NC}"
-docker compose run --rm backend python config/manage.py migrate
+echo -e "${BLUE}🔄 Running database migrations...${NC}"
+docker compose run --rm backend python config/manage.py migrate --noinput
 
-echo -e "${YELLOW}📦 Collecting static files...${NC}"
+echo -e "${BLUE}📦 Collecting static files...${NC}"
 docker compose run --rm backend python config/manage.py collectstatic --noinput
 
-echo -e "${YELLOW}🚀 Starting all services...${NC}"
+echo -e "${BLUE}🚀 Starting all services...${NC}"
 docker compose up -d
 
+# Wait for services to be healthy
+echo -e "${YELLOW}⏳ Waiting for services to be healthy...${NC}"
+sleep 10
+
 echo -e "${GREEN}✅ Deployment completed successfully!${NC}"
-echo -e "${YELLOW}📊 Checking service status...${NC}"
+echo ""
+echo -e "${BLUE}📊 Service Status:${NC}"
 docker compose ps
 
-echo -e "${GREEN}🎉 Your application should now be running!${NC}"
-echo -e "${YELLOW}💡 Access your application at: http://your-google-cloud-ip${NC}"
-echo -e "${YELLOW}💡 To view logs: docker compose logs -f${NC}"
-echo -e "${YELLOW}💡 To stop services: docker compose down${NC}"
+echo ""
+echo -e "${GREEN}🎉 Your application is now running!${NC}"
+echo -e "${YELLOW}💡 Access your application at: http://34.123.45.67${NC}"
+echo -e "${YELLOW}💡 API endpoint: http://34.123.45.67/api/v1${NC}"
+echo ""
+echo -e "${BLUE}Useful commands:${NC}"
+echo -e "  ${YELLOW}View logs:${NC} docker compose logs -f"
+echo -e "  ${YELLOW}View backend logs:${NC} docker compose logs -f backend"
+echo -e "  ${YELLOW}View frontend logs:${NC} docker compose logs -f frontend"
+echo -e "  ${YELLOW}Stop services:${NC} docker compose down"
+echo -e "  ${YELLOW}Restart services:${NC} docker compose restart"

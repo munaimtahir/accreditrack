@@ -70,6 +70,10 @@ dist/
 !.env.example
 !.env*.example
 
+# Production secrets directory
+infra/secrets/
+!infra/secrets/README.md
+
 # IDEs
 .vscode/
 .idea/

@@ -4,11 +4,11 @@ services:
   db:
     image: postgres:16
     env_file:
-      - ../backend/.env.production
+      - ./secrets/backend.env
     environment:
       POSTGRES_DB: ${DB_NAME:-accreditrack}
       POSTGRES_USER: ${DB_USER:-accreditrack}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required and must not be empty. Set it in backend/.env.production}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required and must not be empty. Set it in infra/secrets/backend.env}
     volumes:
       - db_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -25,7 +25,7 @@ services:
       context: ../backend
       dockerfile: Dockerfile
     env_file:
-      - ../backend/.env.production
+      - ./secrets/backend.env
     depends_on:
       db:
         condition: service_healthy
@@ -50,7 +50,7 @@ services:
       context: ../frontend
       dockerfile: Dockerfile
     env_file:
-      - ../frontend/.env.production
+      - ./secrets/frontend.env
     depends_on:
       backend:
         condition: service_healthy
