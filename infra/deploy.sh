@@ -23,6 +23,24 @@ if [ ! -f "../frontend/.env.production" ]; then
     exit 1
 fi
 
+# Validate required environment variables in backend/.env.production
+set +e  # Temporarily disable exit on error for validation
+source ../backend/.env.production 2>/dev/null || true
+set -e  # Re-enable exit on error
+
+if [ -z "${DB_PASSWORD}" ] || [ "${DB_PASSWORD}" = "your-secure-database-password" ]; then
+    echo -e "${RED}❌ Error: DB_PASSWORD is not set or is using default value in backend/.env.production${NC}"
+    echo -e "${YELLOW}💡 Please set a secure DB_PASSWORD in backend/.env.production${NC}"
+    exit 1
+fi
+
+if [ -z "${SECRET_KEY}" ] || [ "${SECRET_KEY}" = "your-secret-key-here-change-in-production" ]; then
+    echo -e "${RED}❌ Error: SECRET_KEY is not set or is using default value in backend/.env.production${NC}"
+    echo -e "${YELLOW}💡 Please set a secure SECRET_KEY in backend/.env.production${NC}"
+    echo -e "${YELLOW}💡 You can generate one using: ./generate-secret-key.sh${NC}"
+    exit 1
+fi
+
 # Check if Docker is running
 if ! docker info > /dev/null 2>&1; then
     echo -e "${RED}❌ Error: Docker is not running${NC}"
@@ -57,7 +75,7 @@ docker compose up -d db
 echo -e "${YELLOW}⏳ Waiting for database to be ready...${NC}"
 MAX_TRIES=60
 TRIES=0
-until docker compose exec db pg_isready -U "${POSTGRES_USER:-accreditrack}" > /dev/null 2>&1; do
+until docker compose exec db pg_isready -U "${DB_USER:-accreditrack}" > /dev/null 2>&1; do
     TRIES=$((TRIES+1))
     if [ "$TRIES" -ge "$MAX_TRIES" ]; then
         echo -e "${RED}❌ Error: Database did not become ready in time${NC}"

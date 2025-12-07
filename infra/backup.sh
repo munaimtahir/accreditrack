@@ -12,7 +12,7 @@ echo "💾 Creating database backup..."
 mkdir -p "$BACKUP_DIR"
 
 # Backup database
-docker compose exec -T db pg_dump -U "${POSTGRES_USER:-accreditrack}" "${POSTGRES_DB:-accreditrack}" > "$BACKUP_FILE"
+docker compose exec -T db pg_dump -U "${DB_USER:-accreditrack}" "${DB_NAME:-accreditrack}" > "$BACKUP_FILE"
 
 # Compress backup
 gzip "$BACKUP_FILE"
