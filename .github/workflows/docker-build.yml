@@ -8,6 +8,24 @@ on:
   workflow_dispatch:
 
 jobs:
+  validate-docker-compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate docker-compose configuration
+        working-directory: ./infra
+        run: |
+          # Create dummy env files for validation
+          mkdir -p secrets
+          echo "SECRET_KEY=test-key" > secrets/backend.env
+          echo "DB_PASSWORD=test-password" >> secrets/backend.env
+          echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > secrets/frontend.env
+          
+          # Validate docker-compose config
+          docker compose config > /dev/null
+          echo "✅ Docker Compose configuration is valid"
+
   build-backend:
     runs-on: ubuntu-latest
     steps:

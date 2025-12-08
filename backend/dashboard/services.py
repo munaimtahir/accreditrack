@@ -535,18 +535,11 @@ def calculate_category_score(category_section, assignments):
         item_status = item_statuses_dict.get(indicator.id)
         if item_status:
             total_score += calculate_indicator_score(item_status)
-=======
-    # Get indicators that have at least one evidence record
-    indicators_with_evidence = ProformaItem.objects.filter(
-        section__template=template,
-        item_statuses__evidence_files__isnull=False
-    ).distinct().count()
+    
+    percentage = (total_score / max_possible_score * 100) if max_possible_score > 0 else 0
     
     return {
-        'template_id': str(template.id),
-        'template_code': template.code,
-        'template_title': template.title,
-        'total_indicators': total_indicators,
-        'assigned_indicators': assigned_indicators,
-        'indicators_with_evidence': indicators_with_evidence,
+        'total_score': total_score,
+        'max_possible_score': max_possible_score,
+        'percentage': round(percentage, 2)
     }
