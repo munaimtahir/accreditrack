@@ -16,4 +16,7 @@ This repo is scaffolded as an **AI‑developer friendly** monorepo:
 - `docs/` – Design and architecture documents.
 - `.github/` – CI and issue templates.
 
-See `docs/SETUP.md` to get started locally.
+## Getting Started
+
+- See `docs/SETUP.md` to get started locally.
+- See `CI-CD.md` for CI/CD workflows and testing procedures.

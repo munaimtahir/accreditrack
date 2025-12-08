@@ -19,8 +19,16 @@ jobs:
           # Create dummy env files for validation
           mkdir -p secrets
           echo "SECRET_KEY=test-key" > secrets/backend.env
+          echo "DB_NAME=accreditrack" >> secrets/backend.env
+          echo "DB_USER=accreditrack" >> secrets/backend.env
           echo "DB_PASSWORD=test-password" >> secrets/backend.env
           echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > secrets/frontend.env
+          
+          # Export variables for docker-compose interpolation
+          export SECRET_KEY=test-key
+          export DB_NAME=accreditrack
+          export DB_USER=accreditrack
+          export DB_PASSWORD=test-password
           
           # Validate docker-compose config
           docker compose config > /dev/null
