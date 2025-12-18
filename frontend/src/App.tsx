@@ -7,7 +7,6 @@ import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Indicators from './pages/Indicators';
 import AIAssistant from './pages/AIAssistant';
-import { authService } from './services/api';
 
 const App: React.FC = () => {
   return (

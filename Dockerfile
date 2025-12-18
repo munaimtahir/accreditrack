@@ -1,25 +1,8 @@
-# Build frontend
-FROM node:18-alpine as frontend-build
-
-WORKDIR /app/frontend
-
-# Copy package files
-COPY frontend/package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy frontend source
-COPY frontend/ ./
-
-# Build the application
-RUN npm run build
-
-# Production nginx image
+# Simple nginx image with pre-built frontend
 FROM nginx:alpine
 
-# Copy built frontend files
-COPY --from=frontend-build /app/frontend/dist /usr/share/nginx/html
+# Copy pre-built frontend files
+COPY frontend/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf

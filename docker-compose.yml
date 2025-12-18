@@ -44,6 +44,12 @@ services:
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
              gunicorn accredify_backend.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   nginx:
     build:
@@ -56,7 +62,8 @@ services:
       - backend_static:/var/www/static:ro
       - backend_media:/var/www/media:ro
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - app-network
 
