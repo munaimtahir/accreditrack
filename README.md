@@ -58,12 +58,21 @@ NGINX (port 80)
 
 ## Quick Start
 
-### Prerequisites
+### Automated Setup (Recommended)
 
-- Docker and Docker Compose installed
-- Git
+```bash
+chmod +x setup.sh
+./setup.sh
+```
 
-### Installation
+This script will:
+- Create .env file from template
+- Build the frontend
+- Start all Docker services
+- Run database migrations
+- Create admin user (admin/admin123)
+
+### Manual Setup
 
 1. Clone the repository:
 ```bash
@@ -83,25 +92,37 @@ DJANGO_SECRET_KEY=your_secret_key_here
 GEMINI_API_KEY=your_gemini_api_key  # Optional for AI features
 ```
 
-To generate a Django secret key:
+4. Build frontend:
 ```bash
-python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+cd frontend
+npm install
+npm run build
+cd ..
 ```
 
-4. Build and start services:
+5. Build and start services:
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
-5. Create a superuser (in a new terminal):
+6. Run migrations:
+```bash
+docker compose exec backend python manage.py migrate
+```
+
+7. Create a superuser:
 ```bash
 docker compose exec backend python manage.py createsuperuser
 ```
 
-6. Access the application:
+8. Access the application:
 - **Frontend**: http://localhost
 - **API Documentation**: http://localhost/api/docs/
 - **Admin Panel**: http://localhost/admin/
+
+### Default Credentials (if using setup.sh)
+- Username: `admin`
+- Password: `admin123`
 
 ## API Endpoints
 
