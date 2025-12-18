@@ -1,16 +1,29 @@
-FROM python:3.12-slim
+FROM python:3.11-slim
 
-WORKDIR /app
-
+# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y build-essential libpq-dev curl && rm -rf /var/lib/apt/lists/*
+# Set work directory
+WORKDIR /app
 
-COPY requirements.txt .
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy project
+COPY . /app/
 
-# Production command (override in docker-compose if needed)
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]
+# Create directories for static and media files
+RUN mkdir -p /app/staticfiles /app/media
+
+# Collect static files
+RUN python manage.py collectstatic --noinput || true
+
+# Run gunicorn
+CMD ["gunicorn", "accredify_backend.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120"]

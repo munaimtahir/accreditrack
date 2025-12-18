@@ -1,6 +1,0 @@
-backups/
-*.sql
-*.sql.gz
-.env
-.env.local
-ssl/
