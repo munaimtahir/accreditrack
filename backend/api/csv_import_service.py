@@ -21,6 +21,7 @@ class CSVImportResult:
         self.rows_skipped = 0
         self.errors = []
         self.unmatched_users = []
+        self.indicators_processed = []  # Track indicator IDs for enrichment
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert result to dictionary for serialization."""
@@ -57,12 +58,14 @@ class CSVImportService:
         self.section_cache = {}  # Cache sections to avoid repeated DB lookups
         self.standard_cache = {}  # Cache standards
     
-    def import_csv(self, csv_file) -> CSVImportResult:
+    def import_csv(self, csv_file, run_ai_enrichment: bool = True, user=None) -> CSVImportResult:
         """
         Import indicators from CSV file.
         
         Args:
             csv_file: File object containing CSV data
+            run_ai_enrichment: Whether to run AI enrichment after import (default: True)
+            user: Optional user who triggered the import (for enrichment tracking)
             
         Returns:
             CSVImportResult with import summary
@@ -88,13 +91,36 @@ class CSVImportService:
             with transaction.atomic():
                 for row_num, row in enumerate(csv_reader, start=2):  # Start at 2 (1 is header)
                     try:
-                        self._process_row(row, row_num)
+                        indicator = self._process_row(row, row_num)
+                        if indicator:
+                            self.result.indicators_processed.append(indicator)
                     except Exception as e:
                         self.result.rows_skipped += 1
                         self.result.errors.append({
                             'row': row_num,
                             'error': str(e)
                         })
+            
+            # Run AI enrichment if requested
+            if run_ai_enrichment and self.result.indicators_processed:
+                try:
+                    from .ai_import_enrichment_service import enrich_indicators_for_import
+                    enrichment_result = enrich_indicators_for_import(
+                        self.result.indicators_processed,
+                        user=user,
+                        force=False
+                    )
+                    # Store enrichment stats in result (for logging/debugging)
+                    self.result.enrichment_stats = enrichment_result
+                except Exception as e:
+                    # Don't fail import if enrichment fails
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"AI enrichment failed during CSV import: {e}")
+                    self.result.errors.append({
+                        'row': 0,
+                        'error': f'AI enrichment failed: {str(e)}'
+                    })
             
             return self.result
             
@@ -117,8 +143,8 @@ class CSVImportService:
         
         return True
     
-    def _process_row(self, row: Dict[str, str], row_num: int):
-        """Process a single CSV row."""
+    def _process_row(self, row: Dict[str, str], row_num: int) -> Indicator:
+        """Process a single CSV row. Returns the Indicator instance."""
         # Extract and validate required fields
         section_name = row.get('Section', '').strip()
         standard_name = row.get('Standard', '').strip()
@@ -212,6 +238,8 @@ class CSVImportService:
             self.result.indicators_created += 1
         else:
             self.result.indicators_updated += 1
+        
+        return indicator
     
     def _get_or_create_section(self, section_name: str) -> Section:
         """Get or create section (case-insensitive)."""

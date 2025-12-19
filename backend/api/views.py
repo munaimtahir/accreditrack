@@ -52,6 +52,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
         Expected CSV format:
         Section, Standard, Indicator, Evidence Required, Responsible Person,
         Frequency, Assigned to, Compliance Evidence, Score
+        
+        Query parameters:
+        - ai_enrich: Set to 0 to disable AI enrichment (default: 1/enabled)
         """
         project = self.get_object()
         
@@ -71,18 +74,63 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Check AI enrichment flag (default: enabled)
+        ai_enrich_param = request.query_params.get('ai_enrich', '1')
+        run_ai_enrichment = ai_enrich_param not in ['0', 'false', 'False']
+        
         # Import CSV
         import_service = CSVImportService(project)
-        result = import_service.import_csv(csv_file)
+        result = import_service.import_csv(csv_file, run_ai_enrichment=run_ai_enrichment, user=request.user)
         
         # Serialize and return results
-        serializer = CSVImportResultSerializer(result.to_dict())
+        result_dict = result.to_dict()
+        
+        # Include enrichment stats if available
+        if hasattr(result, 'enrichment_stats'):
+            result_dict['enrichment_stats'] = result.enrichment_stats
+        
+        serializer = CSVImportResultSerializer(result_dict)
         
         # Return 400 if there were errors, 200 otherwise
         if result.errors and result.indicators_created == 0 and result.indicators_updated == 0:
             return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
         
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'], url_path='enrich-indicators')
+    def enrich_indicators(self, request, pk=None):
+        """
+        Manually trigger AI enrichment for all indicators in a project.
+        
+        Query parameters:
+        - force: Set to 1 to re-enrich even if enrichment data exists (default: 0)
+        """
+        project = self.get_object()
+        force_param = request.query_params.get('force', '0')
+        force = force_param in ['1', 'true', 'True']
+        
+        indicators = project.indicators.all()
+        
+        if not indicators.exists():
+            return Response(
+                {'error': 'No indicators found for this project'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        from .ai_import_enrichment_service import enrich_indicators_for_import
+        
+        enrichment_result = enrich_indicators_for_import(
+            list(indicators),
+            user=request.user,
+            force=force
+        )
+        
+        return Response({
+            'message': 'Enrichment completed',
+            'project_id': project.id,
+            'total_indicators': indicators.count(),
+            **enrichment_result
+        })
     
     @action(detail=True, methods=['get'], url_path='upcoming-tasks')
     def upcoming_tasks(self, request, pk=None):
@@ -340,6 +388,32 @@ class IndicatorViewSet(viewsets.ModelViewSet):
         )
         
         return Response(IndicatorSerializer(indicator).data)
+    
+    @action(detail=True, methods=['post'], url_path='enrich')
+    def enrich(self, request, pk=None):
+        """
+        Manually trigger AI enrichment for a single indicator.
+        
+        Query parameters:
+        - force: Set to 1 to re-enrich even if enrichment data exists (default: 0)
+        """
+        indicator = self.get_object()
+        force_param = request.query_params.get('force', '0')
+        force = force_param in ['1', 'true', 'True']
+        
+        from .ai_import_enrichment_service import enrich_indicators_for_import
+        
+        enrichment_result = enrich_indicators_for_import(
+            [indicator],
+            user=request.user,
+            force=force
+        )
+        
+        return Response({
+            'message': 'Enrichment completed',
+            'indicator_id': indicator.id,
+            **enrichment_result
+        })
 
 
 class EvidenceViewSet(viewsets.ModelViewSet):
