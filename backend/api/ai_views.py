@@ -27,7 +27,8 @@ def get_gemini_response(prompt):
     
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-pro')
+        # Use Gemini 2.0 Flash model for faster and more efficient responses
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')
         response = model.generate_content(prompt)
         return {"result": response.text}
     except Exception as e:
