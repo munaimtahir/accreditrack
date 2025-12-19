@@ -3,14 +3,20 @@ URL configuration for the API app.
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ProjectViewSet, IndicatorViewSet, EvidenceViewSet
+from .views import (
+    ProjectViewSet, IndicatorViewSet, EvidenceViewSet,
+    SectionViewSet, StandardViewSet, FrequencyLogViewSet
+)
 from . import ai_views
 
 # Create router and register viewsets
 router = DefaultRouter()
 router.register(r'projects', ProjectViewSet, basename='project')
+router.register(r'sections', SectionViewSet, basename='section')
+router.register(r'standards', StandardViewSet, basename='standard')
 router.register(r'indicators', IndicatorViewSet, basename='indicator')
 router.register(r'evidence', EvidenceViewSet, basename='evidence')
+router.register(r'frequency-logs', FrequencyLogViewSet, basename='frequency-log')
 
 # AI endpoints
 ai_patterns = [
