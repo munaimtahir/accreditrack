@@ -1,0 +1,105 @@
+name: Docker Build Tests
+
+on:
+  push:
+    branches: [ main, cursor/** ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/docker-tests.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/docker-tests.yml'
+
+jobs:
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile
+        push: false
+        tags: accredify-backend:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile
+        push: false
+        tags: accredify-frontend:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  build-nginx:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build nginx image (with frontend)
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: false
+        tags: accredify-nginx:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  docker-compose-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Create .env file for testing
+      run: |
+        cat > .env << EOF
+        DB_NAME=accredify_test
+        DB_USER=accredify_test
+        DB_PASSWORD=test_password
+        DB_HOST=db
+        DB_PORT=5432
+        DJANGO_SECRET_KEY=test-secret-key-for-ci
+        DEBUG=False
+        ALLOWED_HOSTS=localhost,127.0.0.1
+        CORS_ALLOWED_ORIGINS=http://localhost,http://127.0.0.1
+        GEMINI_API_KEY=
+        EOF
+
+    - name: Build with docker-compose
+      run: |
+        docker compose build --no-cache
+
+    - name: Verify docker-compose config
+      run: |
+        docker compose config > /dev/null

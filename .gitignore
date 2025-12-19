@@ -26,6 +26,7 @@ htmlcov/
 .tox/
 .venv/
 venv/
+venv_test/
 ENV/
 env/
 
