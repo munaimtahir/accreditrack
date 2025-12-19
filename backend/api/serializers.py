@@ -1,8 +1,23 @@
 from rest_framework import serializers
 from .models import (
     Project, Indicator, Evidence, Section, Standard, IndicatorStatusHistory, 
-    FrequencyLog, DigitalFormTemplate, EvidencePeriod, GoogleDriveFolderCache
+    FrequencyLog, DigitalFormTemplate, EvidencePeriod, GoogleDriveFolderCache,
+    PendingDigitalFormTemplate
 )
+
+
+class PendingDigitalFormTemplateSerializer(serializers.ModelSerializer):
+    """Serializer for the PendingDigitalFormTemplate model."""
+    indicator_requirement = serializers.CharField(source='indicator.requirement', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+
+    class Meta:
+        model = PendingDigitalFormTemplate
+        fields = [
+            'id', 'indicator', 'indicator_requirement', 'name', 'description',
+            'form_fields', 'status', 'created_by_name', 'created_at'
+        ]
+        read_only_fields = fields
 
 
 class SectionSerializer(serializers.ModelSerializer):
@@ -79,6 +94,8 @@ class EvidenceSerializer(serializers.ModelSerializer):
     """
     Serializes Evidence model instances.
     """
+    uploaded_by_name = serializers.SerializerMethodField()
+    evidence_type_display = serializers.SerializerMethodField()
     
     class Meta:
         model = Evidence
@@ -98,6 +115,10 @@ class EvidenceSerializer(serializers.ModelSerializer):
         if obj.uploaded_by:
             return obj.uploaded_by.username
         return None
+
+    def get_evidence_type_display(self, obj):
+        """Returns the human-readable choice label for evidence_type."""
+        return obj.get_evidence_type_display()
     
     def validate(self, data):
         """Validate evidence based on evidence_type and indicator evidence_mode."""
