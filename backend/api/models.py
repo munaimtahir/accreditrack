@@ -4,6 +4,15 @@ from django.utils import timezone
 import hashlib
 
 
+# Evidence type choices
+EVIDENCE_TYPE_CHOICES = [
+    ('file', 'File'),
+    ('text_declaration', 'Text Declaration'),
+    ('hybrid', 'Hybrid'),
+    ('form_submission', 'Form Submission'),
+]
+
+
 class Project(models.Model):
     """
     Represents a compliance or accreditation project.
@@ -21,9 +30,20 @@ class Project(models.Model):
     description = models.TextField(blank=True)
     
     # Google Drive integration
-    google_drive_root_folder_id = models.CharField(max_length=255, blank=True, null=True, help_text="Google Drive root folder ID for this project")
-    google_drive_oauth_token = models.JSONField(blank=True, null=True, help_text="OAuth token data for Google Drive access")
-    google_drive_linked_at = models.DateTimeField(blank=True, null=True, help_text="When Google Drive was linked")
+    drive_folder_id = models.CharField(max_length=256, blank=True, null=True, help_text="Google Drive root folder ID for this project")
+    evidence_storage_mode = models.CharField(
+        max_length=20,
+        choices=[('local', 'Local'), ('gdrive', 'Google Drive')],
+        default='local',
+        help_text="Storage mode for evidence files"
+    )
+    drive_linked_at = models.DateTimeField(blank=True, null=True, help_text="When Google Drive was linked")
+    drive_linked_email = models.CharField(max_length=254, blank=True, null=True, help_text="Email of user who linked Drive")
+    
+    # Legacy fields (deprecated but kept for backwards compatibility)
+    google_drive_root_folder_id = models.CharField(max_length=255, blank=True, null=True, help_text="DEPRECATED: Use drive_folder_id instead")
+    google_drive_oauth_token = models.JSONField(blank=True, null=True, help_text="DEPRECATED: OAuth tokens no longer stored in backend")
+    google_drive_linked_at = models.DateTimeField(blank=True, null=True, help_text="DEPRECATED: Use drive_linked_at instead")
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -196,16 +216,29 @@ class Evidence(models.Model):
         notes (TextField): Textual notes or descriptions.
         uploaded_at (DateTimeField): The timestamp when the evidence was uploaded.
     """
-    indicator = models.ForeignKey(Indicator, on_delete=models.CASCADE, related_name='evidence')
+    indicator = models.ForeignKey(Indicator, on_delete=models.CASCADE, related_name='evidence', null=True, blank=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='evidence', null=True, blank=True, help_text="Project this evidence belongs to")
     title = models.CharField(max_length=255)
     
     # Evidence type
     evidence_type = models.CharField(max_length=20, choices=EVIDENCE_TYPE_CHOICES, default='file', help_text="Type of evidence")
     
-    # Google Drive integration (replaces file upload)
-    google_drive_file_id = models.CharField(max_length=255, blank=True, null=True, help_text="Google Drive file ID")
-    google_drive_file_name = models.CharField(max_length=255, blank=True, null=True, help_text="Google Drive file name")
-    google_drive_file_url = models.URLField(blank=True, null=True, help_text="Google Drive sharing link")
+    # Storage mode and Drive integration
+    storage = models.CharField(
+        max_length=20,
+        choices=[('local', 'Local'), ('gdrive', 'Google Drive')],
+        default='local',
+        help_text="Storage location for this evidence"
+    )
+    drive_file_id = models.CharField(max_length=256, blank=True, null=True, help_text="Google Drive file ID")
+    drive_web_view_link = models.URLField(blank=True, null=True, help_text="Google Drive web view link")
+    drive_mime_type = models.CharField(max_length=128, blank=True, null=True, help_text="MIME type of the file")
+    original_filename = models.CharField(max_length=512, blank=True, null=True, help_text="Original filename before upload")
+    
+    # Legacy Google Drive fields (deprecated but kept for backwards compatibility)
+    google_drive_file_id = models.CharField(max_length=255, blank=True, null=True, help_text="DEPRECATED: Use drive_file_id instead")
+    google_drive_file_name = models.CharField(max_length=255, blank=True, null=True, help_text="DEPRECATED: Use original_filename instead")
+    google_drive_file_url = models.URLField(blank=True, null=True, help_text="DEPRECATED: Use drive_web_view_link instead")
     
     # Text-only evidence (for physical evidence declarations)
     evidence_text = models.TextField(blank=True, null=True, help_text="Text declaration for physical evidence")

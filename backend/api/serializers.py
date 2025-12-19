@@ -46,7 +46,10 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'description', 'created_at', 'updated_at', 
             'indicators_count', 'sections_count',
-            'google_drive_root_folder_id', 'google_drive_linked_at', 'google_drive_linked'
+            'drive_folder_id', 'evidence_storage_mode', 'drive_linked_at', 'drive_linked_email',
+            'google_drive_linked',  # Computed field for backwards compatibility
+            # Legacy fields (deprecated)
+            'google_drive_root_folder_id', 'google_drive_linked_at'
         ]
         read_only_fields = ['created_at', 'updated_at', 'google_drive_linked']
         extra_kwargs = {
@@ -80,11 +83,13 @@ class EvidenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Evidence
         fields = [
-            'id', 'indicator', 'title', 'evidence_type', 'evidence_type_display',
-            'google_drive_file_id', 'google_drive_file_name', 'google_drive_file_url',
+            'id', 'indicator', 'project', 'title', 'evidence_type', 'evidence_type_display',
+            'storage', 'drive_file_id', 'drive_web_view_link', 'drive_mime_type', 'original_filename',
             'evidence_text', 'period_start', 'period_end',
             'form_data', 'form_template',
             'file', 'url',  # Legacy fields
+            # Legacy Google Drive fields (deprecated)
+            'google_drive_file_id', 'google_drive_file_name', 'google_drive_file_url',
             'notes', 'uploaded_by', 'uploaded_by_name', 'uploaded_at'
         ]
         read_only_fields = ['uploaded_at', 'uploaded_by_name', 'evidence_type_display']

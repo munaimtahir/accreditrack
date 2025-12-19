@@ -2,11 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { projectService, indicatorService, evidenceService, complianceService } from '../services/api';
 import EvidencePanel from '../components/EvidencePanel';
+import DriveFolderLinker from '../components/DriveFolderLinker';
 
 interface Project {
   id: number;
   name: string;
   google_drive_linked: boolean;
+  drive_folder_id?: string | null;
+  evidence_storage_mode: 'local' | 'gdrive';
+  drive_linked_at?: string | null;
+  drive_linked_email?: string | null;
 }
 
 interface Indicator {
@@ -68,26 +73,18 @@ const EvidenceLibrary: React.FC = () => {
       <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1>Evidence Library - {project.name}</h1>
-          <p style={{ color: '#666', marginTop: '5px' }}>
-            {project.google_drive_linked ? '✓ Google Drive Linked' : '⚠ Google Drive Not Linked'}
-          </p>
         </div>
         <button onClick={() => navigate('/projects')} style={{ padding: '10px 20px' }}>
           Back to Projects
         </button>
       </div>
 
-      {!project.google_drive_linked && (
-        <div style={{ 
-          padding: '15px', 
-          backgroundColor: '#fff3cd', 
-          border: '1px solid #ffc107', 
-          borderRadius: '4px',
-          marginBottom: '20px'
-        }}>
-          <strong>Google Drive Not Linked:</strong> Please link Google Drive to enable file uploads.
-        </div>
-      )}
+      <DriveFolderLinker 
+        project={project} 
+        onLinked={() => {
+          loadProject();
+        }}
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px' }}>
         <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '4px', border: '1px solid #ddd' }}>

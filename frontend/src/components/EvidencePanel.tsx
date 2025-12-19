@@ -1,17 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { indicatorService, evidenceService, complianceService, aiService } from '../services/api';
+import { indicatorService, evidenceService, complianceService, aiService, projectService } from '../services/api';
+import { getDriveAccessToken } from '../lib/googleAuth';
+import { ensureFolderPath, uploadFileToFolder } from '../lib/driveApi';
 
 interface Evidence {
   id: number;
   title: string;
   evidence_type: string;
   evidence_type_display: string;
-  google_drive_file_url?: string;
+  storage?: 'local' | 'gdrive';
+  drive_web_view_link?: string;
+  google_drive_file_url?: string; // Legacy field
   evidence_text?: string;
   period_start?: string;
   period_end?: string;
   uploaded_by_name?: string;
   uploaded_at: string;
+}
+
+interface Project {
+  id: number;
+  drive_folder_id?: string | null;
+  evidence_storage_mode: 'local' | 'gdrive';
 }
 
 interface Indicator {
@@ -20,6 +30,10 @@ interface Indicator {
   evidence_mode: string;
   evidence_required: string;
   normalized_frequency?: string;
+  section_name?: string;
+  standard_name?: string;
+  section?: { name: string } | null;
+  standard?: { name: string } | null;
 }
 
 interface ComplianceStatus {
@@ -39,6 +53,7 @@ interface Props {
 
 const EvidencePanel: React.FC<Props> = ({ indicatorId, projectId, onEvidenceAdded }) => {
   const [indicator, setIndicator] = useState<Indicator | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [compliance, setCompliance] = useState<ComplianceStatus | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -54,12 +69,23 @@ const EvidencePanel: React.FC<Props> = ({ indicatorId, projectId, onEvidenceAdde
   const [aiSuggestions, setAiSuggestions] = useState<any>(null);
   const [showAIPanel, setShowAIPanel] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
+    loadProject();
     loadIndicator();
     loadEvidence();
     loadCompliance();
-  }, [indicatorId]);
+  }, [indicatorId, projectId]);
+
+  const loadProject = async () => {
+    try {
+      const response = await projectService.get(projectId);
+      setProject(response.data);
+    } catch (err) {
+      console.error('Failed to load project', err);
+    }
+  };
 
   const loadIndicator = async () => {
     try {
@@ -92,29 +118,85 @@ const EvidencePanel: React.FC<Props> = ({ indicatorId, projectId, onEvidenceAdde
 
   const handleSubmitEvidence = async (e: React.FormEvent) => {
     e.preventDefault();
+    setUploading(true);
+
     try {
-      const submitData = new FormData();
-      submitData.append('indicator', indicatorId.toString());
-      submitData.append('title', formData.title);
-      submitData.append('evidence_type', evidenceType);
-      submitData.append('notes', formData.notes);
+      // Check if project uses Drive storage
+      const useDrive = project?.evidence_storage_mode === 'gdrive' && 
+                       project?.drive_folder_id && 
+                       file && 
+                       (evidenceType === 'file' || evidenceType === 'hybrid');
 
-      if (evidenceType === 'text_declaration' || evidenceType === 'hybrid') {
-        submitData.append('evidence_text', formData.evidence_text);
-      }
+      if (useDrive) {
+        // Upload to Drive first
+        const accessToken = await getDriveAccessToken();
+        
+        // Get section and standard names
+        const sectionName = indicator?.section_name || indicator?.section?.name || 'Uncategorized';
+        const standardName = indicator?.standard_name || indicator?.standard?.name || 'Uncategorized';
+        
+        // Ensure folder path exists
+        const standardFolderId = await ensureFolderPath(
+          accessToken,
+          project.drive_folder_id!,
+          sectionName,
+          standardName
+        );
+        
+        // Upload file to Drive
+        const driveResult = await uploadFileToFolder(
+          accessToken,
+          standardFolderId,
+          file,
+          file.name
+        );
+        
+        // Create evidence metadata
+        const evidenceData = {
+          project: projectId,
+          indicator: indicatorId,
+          storage: 'gdrive',
+          title: formData.title,
+          evidence_type: evidenceType,
+          original_filename: file.name,
+          drive_file_id: driveResult.id,
+          drive_web_view_link: driveResult.webViewLink,
+          drive_mime_type: driveResult.mimeType,
+          evidence_text: evidenceType === 'text_declaration' || evidenceType === 'hybrid' 
+            ? formData.evidence_text 
+            : undefined,
+          period_start: formData.period_start || undefined,
+          period_end: formData.period_end || undefined,
+          notes: formData.notes || undefined,
+        };
+        
+        await evidenceService.create(evidenceData);
+      } else {
+        // Local storage - use FormData
+        const submitData = new FormData();
+        submitData.append('project', projectId.toString());
+        submitData.append('indicator', indicatorId.toString());
+        submitData.append('title', formData.title);
+        submitData.append('evidence_type', evidenceType);
+        submitData.append('notes', formData.notes);
 
-      if (formData.period_start) {
-        submitData.append('period_start', formData.period_start);
-      }
-      if (formData.period_end) {
-        submitData.append('period_end', formData.period_end);
-      }
+        if (evidenceType === 'text_declaration' || evidenceType === 'hybrid') {
+          submitData.append('evidence_text', formData.evidence_text);
+        }
 
-      if (file && (evidenceType === 'file' || evidenceType === 'hybrid')) {
-        submitData.append('file', file);
-      }
+        if (formData.period_start) {
+          submitData.append('period_start', formData.period_start);
+        }
+        if (formData.period_end) {
+          submitData.append('period_end', formData.period_end);
+        }
 
-      await evidenceService.create(submitData);
+        if (file && (evidenceType === 'file' || evidenceType === 'hybrid')) {
+          submitData.append('file', file);
+        }
+
+        await evidenceService.create(submitData);
+      }
       
       // Reset form
       setFormData({
@@ -133,6 +215,8 @@ const EvidencePanel: React.FC<Props> = ({ indicatorId, projectId, onEvidenceAdde
       onEvidenceAdded();
     } catch (err: any) {
       alert('Failed to submit evidence: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -315,8 +399,19 @@ const EvidencePanel: React.FC<Props> = ({ indicatorId, projectId, onEvidenceAdde
             />
           </div>
 
-          <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#4caf50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-            Submit Evidence
+          <button 
+            type="submit" 
+            disabled={uploading}
+            style={{ 
+              padding: '10px 20px', 
+              backgroundColor: uploading ? '#ccc' : '#4caf50', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '4px', 
+              cursor: uploading ? 'not-allowed' : 'pointer' 
+            }}
+          >
+            {uploading ? 'Uploading...' : 'Submit Evidence'}
           </button>
         </form>
       )}
@@ -354,14 +449,14 @@ const EvidencePanel: React.FC<Props> = ({ indicatorId, projectId, onEvidenceAdde
                         <strong>Physical Evidence:</strong> {ev.evidence_text}
                       </div>
                     )}
-                    {ev.google_drive_file_url && (
+                    {(ev.drive_web_view_link || ev.google_drive_file_url) && (
                       <a 
-                        href={ev.google_drive_file_url} 
+                        href={ev.drive_web_view_link || ev.google_drive_file_url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        style={{ color: '#2196f3', textDecoration: 'none' }}
+                        style={{ color: '#2196f3', textDecoration: 'none', marginRight: '10px' }}
                       >
-                        View File →
+                        {ev.storage === 'gdrive' ? 'Open in Drive →' : 'View File →'}
                       </a>
                     )}
                   </div>

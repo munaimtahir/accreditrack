@@ -120,6 +120,27 @@ export const projectService = {
    * @returns {Promise<any>} A promise that resolves when the project is deleted.
    */
   delete: (id: number) => api.delete(`/projects/${id}/`),
+  /**
+   * Links a Google Drive folder to a project.
+   * @param {number} id - The ID of the project.
+   * @param {any} data - Data containing drive_folder_id and optionally drive_linked_email.
+   * @returns {Promise<any>} A promise that resolves to the updated project data.
+   */
+  linkDriveFolder: (id: number, data: { drive_folder_id: string; drive_linked_email?: string }) =>
+    api.post(`/projects/${id}/link-drive-folder/`, data),
+  /**
+   * Unlinks Google Drive folder from a project.
+   * @param {number} id - The ID of the project.
+   * @returns {Promise<any>} A promise that resolves to the updated project data.
+   */
+  unlinkDriveFolder: (id: number) =>
+    api.post(`/projects/${id}/unlink-drive-folder/`),
+  /**
+   * Gets all evidence for a project.
+   * @param {number} id - The ID of the project.
+   * @returns {Promise<any>} A promise that resolves to the list of evidence.
+   */
+  getEvidence: (id: number) => api.get(`/projects/${id}/evidence/`),
 };
 
 /**
@@ -183,12 +204,18 @@ export const evidenceService = {
   get: (id: number) => api.get(`/evidence/${id}/`),
   /**
    * Creates a new piece of evidence.
-   * @param {FormData} data - The data for the new evidence, as FormData.
+   * @param {FormData | any} data - The data for the new evidence, as FormData (for local) or JSON (for Drive).
    * @returns {Promise<any>} A promise that resolves to the created evidence data.
    */
-  create: (data: FormData) => api.post('/evidence/', data, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  create: (data: FormData | any) => {
+    if (data instanceof FormData) {
+      return api.post('/evidence/', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    } else {
+      return api.post('/evidence/', data);
+    }
+  },
   /**
    * Updates an existing piece of evidence.
    * @param {number} id - The ID of the evidence to update.

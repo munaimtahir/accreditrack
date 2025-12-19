@@ -141,10 +141,21 @@ SIMPLE_JWT = {
 # CORS Settings
 CORS_ALLOWED_ORIGINS = os.getenv(
     'CORS_ALLOWED_ORIGINS', 
-    'http://localhost,http://127.0.0.1'
+    'https://accredify.pmc.edu.pk,http://accredify.pmc.edu.pk,http://172.104.187.212,http://172.104.187.212:80,http://172.104.187.212:5173,http://localhost:5173,http://127.0.0.1:5173'
 ).split(',')
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # Spectacular settings for API documentation
 SPECTACULAR_SETTINGS = {

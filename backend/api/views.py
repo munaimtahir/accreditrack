@@ -235,15 +235,69 @@ class ProjectViewSet(viewsets.ModelViewSet):
         serializer = UpcomingTaskSerializer(tasks, many=True)
         return Response(serializer.data)
     
-    @action(detail=True, methods=['post'], url_path='link-google-drive')
-    def link_google_drive(self, request, pk=None):
+    @action(detail=True, methods=['post'], url_path='link-drive-folder')
+    def link_drive_folder(self, request, pk=None):
         """
-        Link Google Drive to project via OAuth token.
+        Link a Google Drive folder to a project.
         
         Expected input:
         {
-            "oauth_token": {...}  # OAuth token JSON
+            "drive_folder_id": "1AbC...",
+            "drive_linked_email": "user@gmail.com"  # optional
         }
+        """
+        project = self.get_object()
+        drive_folder_id = request.data.get('drive_folder_id')
+        drive_linked_email = request.data.get('drive_linked_email')
+        
+        if not drive_folder_id:
+            return Response(
+                {'error': 'drive_folder_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        from django.utils import timezone
+        project.drive_folder_id = drive_folder_id
+        project.evidence_storage_mode = 'gdrive'
+        project.drive_linked_at = timezone.now()
+        if drive_linked_email:
+            project.drive_linked_email = drive_linked_email
+        project.save()
+        
+        serializer = ProjectSerializer(project)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], url_path='unlink-drive-folder')
+    def unlink_drive_folder(self, request, pk=None):
+        """
+        Unlink Google Drive folder from a project.
+        """
+        project = self.get_object()
+        
+        project.drive_folder_id = None
+        project.evidence_storage_mode = 'local'
+        project.drive_linked_at = None
+        project.drive_linked_email = None
+        project.save()
+        
+        serializer = ProjectSerializer(project)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'], url_path='evidence')
+    def evidence_list(self, request, pk=None):
+        """
+        Get all evidence for a project.
+        """
+        project = self.get_object()
+        evidence = Evidence.objects.filter(project=project)
+        serializer = EvidenceSerializer(evidence, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'], url_path='link-google-drive')
+    def link_google_drive(self, request, pk=None):
+        """
+        DEPRECATED: Link Google Drive to project via OAuth token.
+        Use link-drive-folder instead.
         """
         project = self.get_object()
         oauth_token = request.data.get('oauth_token')
@@ -480,37 +534,53 @@ class EvidenceViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Handle evidence creation with Google Drive integration."""
         indicator = serializer.validated_data.get('indicator')
+        project = serializer.validated_data.get('project')
         evidence_type = serializer.validated_data.get('evidence_type', 'file')
         
-        # Handle file upload to Google Drive
-        if evidence_type in ['file', 'hybrid'] and 'file' in self.request.FILES:
-            file_obj = self.request.FILES['file']
-            
-            # Ensure indicator folder structure exists
-            folder_structure = ensure_indicator_folder_structure(indicator)
-            if not folder_structure:
-                raise ValidationError(
-                    "Failed to create Google Drive folder structure. Please ensure Google Drive is linked."
+        # Set project from indicator if not provided
+        if not project and indicator:
+            project = indicator.project
+            serializer.validated_data['project'] = project
+        
+        # Handle file upload to Google Drive (if project uses Drive storage)
+        if project and project.evidence_storage_mode == 'gdrive' and project.drive_folder_id:
+            if evidence_type in ['file', 'hybrid'] and 'file' in self.request.FILES:
+                file_obj = self.request.FILES['file']
+                
+                # Ensure indicator folder structure exists
+                folder_structure = ensure_indicator_folder_structure(indicator)
+                if not folder_structure:
+                    raise ValidationError(
+                        "Failed to create Google Drive folder structure. Please ensure Google Drive is linked."
+                    )
+                
+                # Determine upload folder based on file type
+                uploads_folder_id = folder_structure.get('uploads')
+                
+                # Upload to Drive
+                drive_result = upload_file_to_drive(
+                    file_obj, uploads_folder_id, indicator, file_obj.name
                 )
-            
-            # Determine upload folder based on file type
-            uploads_folder_id = folder_structure.get('uploads')
-            
-            # Upload to Drive
-            drive_result = upload_file_to_drive(
-                file_obj, uploads_folder_id, indicator, file_obj.name
-            )
-            
-            if drive_result:
-                serializer.validated_data['google_drive_file_id'] = drive_result['file_id']
-                serializer.validated_data['google_drive_file_name'] = drive_result['file_name']
-                serializer.validated_data['google_drive_file_url'] = drive_result['file_url']
+                
+                if drive_result:
+                    serializer.validated_data['storage'] = 'gdrive'
+                    serializer.validated_data['drive_file_id'] = drive_result['file_id']
+                    serializer.validated_data['original_filename'] = drive_result['file_name']
+                    serializer.validated_data['drive_web_view_link'] = drive_result['file_url']
+                    # Also set legacy fields for backwards compatibility
+                    serializer.validated_data['google_drive_file_id'] = drive_result['file_id']
+                    serializer.validated_data['google_drive_file_name'] = drive_result['file_name']
+                    serializer.validated_data['google_drive_file_url'] = drive_result['file_url']
+        elif evidence_type in ['file', 'hybrid'] and 'file' in self.request.FILES:
+            # Local storage mode - keep existing behavior
+            serializer.validated_data['storage'] = 'local'
         
         # Save evidence
         evidence = serializer.save(uploaded_by=self.request.user)
         
-        # Recalculate compliance
-        recalculate_indicator_compliance(indicator)
+        # Recalculate compliance if indicator exists
+        if indicator:
+            recalculate_indicator_compliance(indicator)
         
         return evidence
 
