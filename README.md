@@ -72,6 +72,8 @@ This script will:
 - Run database migrations
 - Create admin user (admin/admin123)
 
+**For VPS deployment**, see [QUICKSTART.md](QUICKSTART.md) for one-command deployment.
+
 ### Manual Setup
 
 1. Clone the repository:

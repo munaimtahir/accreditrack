@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+!.env.template
+
+# Logs
+*.log
+logs/
+deployment_*.log
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# Build artifacts (keep dist for frontend)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+node_modules/
+
+# Database
+*.sqlite3
+*.db
+
+# Media and static (will be generated)
+media/
+staticfiles/
