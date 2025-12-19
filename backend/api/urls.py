@@ -9,6 +9,7 @@ from .views import (
     DigitalFormTemplateViewSet, EvidencePeriodViewSet
 )
 from . import ai_views
+from .views import submit_digital_form
 
 # Create router and register viewsets
 router = DefaultRouter()
@@ -30,8 +31,10 @@ ai_patterns = [
     path('convert-document/', ai_views.convert_document, name='convert-document'),
     path('compliance-guide/', ai_views.compliance_guide, name='compliance-guide'),
     path('analyze-tasks/', ai_views.analyze_tasks, name='analyze-tasks'),
+    path('evidence-assistance/', ai_views.evidence_assistance, name='evidence-assistance'),
 ]
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('submit-form/', submit_digital_form, name='submit-form'),
 ] + ai_patterns

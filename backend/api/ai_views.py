@@ -246,3 +246,70 @@ def analyze_tasks(request):
     
     result = get_gemini_response(prompt)
     return Response(result)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def evidence_assistance(request, indicator_id=None):
+    """
+    Get AI assistance for evidence collection for a specific indicator.
+    
+    GET: Get all assistance options
+    POST: Get specific assistance type
+    
+    Expected input for POST:
+    {
+        "indicator_id": 123,
+        "assistance_type": "suggestions" | "sop" | "form" | "gaps" | "requirements"
+    }
+    """
+    from .models import Indicator
+    from .ai_evidence_service import (
+        analyze_indicator_evidence_requirements,
+        generate_evidence_suggestions,
+        draft_sop_or_policy,
+        suggest_digital_form,
+        explain_compliance_gaps
+    )
+    
+    if request.method == 'GET':
+        indicator_id = request.query_params.get('indicator_id')
+    
+    if request.method == 'POST':
+        indicator_id = request.data.get('indicator_id')
+    
+    if not indicator_id:
+        return Response(
+            {"error": "indicator_id is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        indicator = Indicator.objects.get(pk=indicator_id)
+    except Indicator.DoesNotExist:
+        return Response(
+            {"error": "Indicator not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    assistance_type = request.data.get('assistance_type', 'suggestions') if request.method == 'POST' else 'suggestions'
+    
+    if assistance_type == 'requirements':
+        result = analyze_indicator_evidence_requirements(indicator)
+    elif assistance_type == 'suggestions':
+        suggestions = generate_evidence_suggestions(indicator)
+        result = {'suggestions': suggestions}
+    elif assistance_type == 'sop':
+        doc_type = request.data.get('document_type', 'SOP')
+        result = draft_sop_or_policy(indicator, doc_type)
+    elif assistance_type == 'form':
+        result = suggest_digital_form(indicator)
+    elif assistance_type == 'gaps':
+        result = explain_compliance_gaps(indicator)
+    else:
+        return Response(
+            {"error": f"Unknown assistance_type: {assistance_type}"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    return Response(result)

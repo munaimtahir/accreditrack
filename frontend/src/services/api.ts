@@ -99,13 +99,66 @@ export const evidenceService = {
     return api.get('/evidence/', { params });
   },
   get: (id: number) => api.get(`/evidence/${id}/`),
-  create: (data: FormData) => api.post('/evidence/', data, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
-  update: (id: number, data: FormData) => api.put(`/evidence/${id}/`, data, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  create: (data: FormData | any) => {
+    if (data instanceof FormData) {
+      return api.post('/evidence/', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    }
+    return api.post('/evidence/', data);
+  },
+  update: (id: number, data: FormData | any) => {
+    if (data instanceof FormData) {
+      return api.put(`/evidence/${id}/`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    }
+    return api.put(`/evidence/${id}/`, data);
+  },
   delete: (id: number) => api.delete(`/evidence/${id}/`),
+};
+
+// Project Google Drive services
+export const projectDriveService = {
+  linkDrive: (projectId: number, oauthToken: any) =>
+    api.post(`/projects/${projectId}/link-google-drive/`, { oauth_token: oauthToken }),
+  initializeFolder: (projectId: number) =>
+    api.post(`/projects/${projectId}/initialize-drive-folder/`),
+};
+
+// Indicator compliance services
+export const complianceService = {
+  getComplianceStatus: (indicatorId: number) =>
+    api.get(`/indicators/${indicatorId}/compliance-status/`),
+  getMissingPeriods: (indicatorId: number) =>
+    api.get(`/indicators/${indicatorId}/missing-periods/`),
+};
+
+// Form template services
+export const formTemplateService = {
+  getAll: (indicatorId?: number) => {
+    const params = indicatorId ? { indicator_id: indicatorId } : {};
+    return api.get('/form-templates/', { params });
+  },
+  get: (id: number) => api.get(`/form-templates/${id}/`),
+  create: (data: any) => api.post('/form-templates/', data),
+  update: (id: number, data: any) => api.put(`/form-templates/${id}/`, data),
+  delete: (id: number) => api.delete(`/form-templates/${id}/`),
+};
+
+// Form submission service
+export const formSubmissionService = {
+  submit: (data: any) => api.post('/submit-form/', data),
+};
+
+// Evidence period services
+export const evidencePeriodService = {
+  getAll: (indicatorId?: number) => {
+    const params = indicatorId ? { indicator_id: indicatorId } : {};
+    return api.get('/evidence-periods/', { params });
+  },
+  recalculate: (indicatorId: number) =>
+    api.post('/evidence-periods/recalculate/', { indicator_id: indicatorId }),
 };
 
 // AI services
@@ -130,4 +183,12 @@ export const aiService = {
   
   analyzeTasks: (tasks: string[]) => 
     api.post('/analyze-tasks/', { tasks }),
+  
+  getEvidenceAssistance: (indicatorId: number, assistanceType?: string) => {
+    const params = { indicator_id: indicatorId };
+    if (assistanceType) {
+      return api.post('/evidence-assistance/', { indicator_id: indicatorId, assistance_type: assistanceType });
+    }
+    return api.get('/evidence-assistance/', { params });
+  },
 };

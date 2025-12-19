@@ -26,7 +26,7 @@ except ImportError:
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 
-def get_oauth_flow(redirect_uri: str) -> Optional[Flow]:
+def get_oauth_flow(redirect_uri: str):
     """
     Create OAuth 2.0 flow for Google Drive authentication.
     
@@ -187,18 +187,28 @@ def ensure_indicator_folder_structure(indicator: Indicator) -> Optional[Dict[str
     indicator_title = indicator.requirement[:50]  # Truncate for folder name
     indicator_code = indicator.indicator_code or f"IND-{indicator.id}"
     
-    # Create folder path string for cache lookup
-    folder_path_parts = [
-        section_name,
-        f"{indicator_code} - {indicator_title}"
-    ]
-    if indicator.standard:
-        folder_path = f"{section_name}/{indicator_code} - {indicator_title}"
-    else:
-        folder_path = f"{section_name}/{indicator_code} - {indicator_title}"
+    folder_ids = {'root': root_folder_id}
     
-    # Check cache first
-    cache_key = f"{section_name}/{standard_name}/{indicator_code} - {indicator_title}"
+    # Create section folder
+    section_folder_id = _get_or_create_folder(
+        service, root_folder_id, section_name, project, f"{section_name}"
+    )
+    folder_ids['section'] = section_folder_id
+    
+    # Create standard folder (Standard Code - Standard Name)
+    # Note: Using standard name directly as we don't have a standard_code field
+    standard_folder_name = standard_name
+    standard_folder_id = _get_or_create_folder(
+        service, section_folder_id, standard_folder_name, project,
+        f"{section_name}/{standard_folder_name}"
+    )
+    folder_ids['standard'] = standard_folder_id
+    
+    # Create indicator folder (Indicator Code - Indicator Title)
+    indicator_folder_name = f"{indicator_code} - {indicator_title}"
+    cache_key = f"{section_name}/{standard_folder_name}/{indicator_folder_name}"
+    
+    # Check cache for indicator folder
     cached = GoogleDriveFolderCache.objects.filter(
         project=project,
         folder_path=cache_key
@@ -211,29 +221,15 @@ def ensure_indicator_folder_structure(indicator: Indicator) -> Optional[Dict[str
             indicator_folder_id = cached.google_drive_folder_id
         except HttpError:
             cached = None
+            indicator_folder_id = None
+    else:
+        indicator_folder_id = None
     
-    folder_ids = {'root': root_folder_id}
-    
-    # Create section folder
-    section_folder_id = _get_or_create_folder(
-        service, root_folder_id, section_name, project, f"{section_name}"
-    )
-    folder_ids['section'] = section_folder_id
-    
-    # Create standard folder
-    standard_folder_name = f"{indicator_code} - {standard_name}"
-    standard_folder_id = _get_or_create_folder(
-        service, section_folder_id, standard_folder_name, project,
-        f"{section_name}/{standard_folder_name}"
-    )
-    folder_ids['standard'] = standard_folder_id
-    
-    # Create indicator folder
-    indicator_folder_name = f"{indicator_code} - {indicator_title}"
-    indicator_folder_id = _get_or_create_folder(
-        service, standard_folder_id, indicator_folder_name, project,
-        cache_key
-    )
+    if not indicator_folder_id:
+        indicator_folder_id = _get_or_create_folder(
+            service, standard_folder_id, indicator_folder_name, project,
+            cache_key
+        )
     folder_ids['indicator'] = indicator_folder_id
     
     # Create subfolders
