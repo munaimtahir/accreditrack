@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { projectService, indicatorService, evidenceService, complianceService } from '../services/api';
+import { projectService, indicatorService } from '../services/api';
 import EvidencePanel from '../components/EvidencePanel';
 
 interface Project {
