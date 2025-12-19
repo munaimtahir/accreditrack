@@ -16,7 +16,6 @@ if [ ! -f .env ]; then
     # Set default values
     sed -i "s/DB_PASSWORD=/DB_PASSWORD=accredify_password_change_me/" .env
     sed -i "s/DJANGO_SECRET_KEY=/DJANGO_SECRET_KEY=$SECRET_KEY/" .env
-    sed -i "s/GEMINI_API_KEY=AIzaSyAvK-H204qOxbincL3UZaiU1f8bSglvULg/GEMINI_API_KEY=AIzaSyAvK-H204qOxbincL3UZaiU1f8bSglvULg/" .env
     
     echo "✅ .env file created with Gemini API key configured."
 fi
