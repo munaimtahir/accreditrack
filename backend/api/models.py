@@ -8,6 +8,12 @@ class Project(models.Model):
     """Project model for compliance/accreditation projects."""
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    
+    # Google Drive integration
+    google_drive_root_folder_id = models.CharField(max_length=255, blank=True, null=True, help_text="Google Drive root folder ID for this project")
+    google_drive_oauth_token = models.JSONField(blank=True, null=True, help_text="OAuth token data for Google Drive access")
+    google_drive_linked_at = models.DateTimeField(blank=True, null=True, help_text="When Google Drive was linked")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -69,6 +75,13 @@ class Indicator(models.Model):
         ('recurring', 'Recurring'),
     ]
     
+    EVIDENCE_MODE_CHOICES = [
+        ('file_only', 'File Only'),
+        ('text_only', 'Text Only'),
+        ('hybrid', 'Hybrid (Text + Optional File)'),
+        ('frequency_log', 'Frequency Log'),
+    ]
+    
     # Core fields
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='indicators')
     
@@ -100,6 +113,10 @@ class Indicator(models.Model):
     # Assignment
     assigned_to = models.CharField(max_length=255, blank=True, help_text="Email or username")
     assigned_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_indicators')
+    
+    # Evidence mode configuration
+    evidence_mode = models.CharField(max_length=20, choices=EVIDENCE_MODE_CHOICES, default='hybrid', help_text="How evidence is expected for this indicator")
+    indicator_code = models.CharField(max_length=100, blank=True, help_text="Code for folder naming (e.g., 'IND-001')")
     
     # Idempotency and AI
     indicator_key = models.CharField(max_length=64, unique=True, null=True, blank=True, db_index=True, help_text="Hash for idempotent imports")
@@ -141,10 +158,40 @@ class Indicator(models.Model):
 
 class Evidence(models.Model):
     """Evidence model for supporting documents and links."""
+    
+    EVIDENCE_TYPE_CHOICES = [
+        ('file', 'File'),
+        ('text_declaration', 'Text Declaration'),
+        ('hybrid', 'Hybrid'),
+        ('form_submission', 'Form Submission'),
+    ]
+    
     indicator = models.ForeignKey(Indicator, on_delete=models.CASCADE, related_name='evidence')
     title = models.CharField(max_length=255)
-    file = models.FileField(upload_to='evidence/', blank=True, null=True)
-    url = models.URLField(blank=True)
+    
+    # Evidence type
+    evidence_type = models.CharField(max_length=20, choices=EVIDENCE_TYPE_CHOICES, default='file', help_text="Type of evidence")
+    
+    # Google Drive integration (replaces file upload)
+    google_drive_file_id = models.CharField(max_length=255, blank=True, null=True, help_text="Google Drive file ID")
+    google_drive_file_name = models.CharField(max_length=255, blank=True, null=True, help_text="Google Drive file name")
+    google_drive_file_url = models.URLField(blank=True, null=True, help_text="Google Drive sharing link")
+    
+    # Text-only evidence (for physical evidence declarations)
+    evidence_text = models.TextField(blank=True, null=True, help_text="Text declaration for physical evidence")
+    
+    # Period coverage (for frequency-based evidence)
+    period_start = models.DateField(blank=True, null=True, help_text="Period start date for frequency-based evidence")
+    period_end = models.DateField(blank=True, null=True, help_text="Period end date for frequency-based evidence")
+    
+    # Digital form submission
+    form_data = models.JSONField(blank=True, null=True, help_text="Form submission data")
+    form_template = models.ForeignKey('DigitalFormTemplate', on_delete=models.SET_NULL, null=True, blank=True, related_name='submissions', help_text="Form template used for this submission")
+    
+    # Legacy fields (deprecated but kept for backwards compatibility)
+    file = models.FileField(upload_to='evidence/', blank=True, null=True, help_text="DEPRECATED: Use Google Drive instead")
+    url = models.URLField(blank=True, help_text="DEPRECATED: Use google_drive_file_url instead")
+    
     notes = models.TextField(blank=True)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='uploaded_evidence')
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -190,3 +237,54 @@ class FrequencyLog(models.Model):
     
     def __str__(self):
         return f"{self.indicator.requirement[:30]} - {self.period_start} to {self.period_end}"
+
+
+class DigitalFormTemplate(models.Model):
+    """Template for digital forms used for recurring evidence collection."""
+    indicator = models.ForeignKey(Indicator, on_delete=models.CASCADE, related_name='form_templates')
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    form_fields = models.JSONField(help_text="Field definitions for the form")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_form_templates')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.name} - {self.indicator.requirement[:30]}"
+
+
+class EvidencePeriod(models.Model):
+    """Track expected vs actual evidence for frequency-based indicators."""
+    indicator = models.ForeignKey(Indicator, on_delete=models.CASCADE, related_name='evidence_periods')
+    period_start = models.DateField()
+    period_end = models.DateField()
+    expected_evidence_count = models.IntegerField(default=1, help_text="Expected number of evidence entries for this period")
+    actual_evidence_count = models.IntegerField(default=0, help_text="Actual number of evidence entries (computed)")
+    is_compliant = models.BooleanField(default=False, help_text="Whether this period is compliant (computed)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-period_start']
+        unique_together = [['indicator', 'period_start', 'period_end']]
+    
+    def __str__(self):
+        return f"{self.indicator.requirement[:30]} - {self.period_start} to {self.period_end}"
+
+
+class GoogleDriveFolderCache(models.Model):
+    """Cache for Google Drive folder IDs to enable idempotent folder creation."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='drive_folder_cache')
+    folder_path = models.CharField(max_length=500, help_text="Path like 'Section/Standard/Indicator'")
+    google_drive_folder_id = models.CharField(max_length=255, help_text="Google Drive folder ID")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = [['project', 'folder_path']]
+    
+    def __str__(self):
+        return f"{self.project.name} - {self.folder_path}"

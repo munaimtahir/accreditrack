@@ -5,7 +5,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     ProjectViewSet, IndicatorViewSet, EvidenceViewSet,
-    SectionViewSet, StandardViewSet, FrequencyLogViewSet
+    SectionViewSet, StandardViewSet, FrequencyLogViewSet,
+    DigitalFormTemplateViewSet, EvidencePeriodViewSet
 )
 from . import ai_views
 
@@ -17,6 +18,8 @@ router.register(r'standards', StandardViewSet, basename='standard')
 router.register(r'indicators', IndicatorViewSet, basename='indicator')
 router.register(r'evidence', EvidenceViewSet, basename='evidence')
 router.register(r'frequency-logs', FrequencyLogViewSet, basename='frequency-log')
+router.register(r'form-templates', DigitalFormTemplateViewSet, basename='form-template')
+router.register(r'evidence-periods', EvidencePeriodViewSet, basename='evidence-period')
 
 # AI endpoints
 ai_patterns = [
