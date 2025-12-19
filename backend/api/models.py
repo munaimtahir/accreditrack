@@ -3,7 +3,18 @@ from django.contrib.auth.models import User
 
 
 class Project(models.Model):
-    """Project model for compliance/accreditation projects."""
+    """
+    Represents a compliance or accreditation project.
+
+    Each project has a name and a description and serves as a container for
+    related compliance indicators.
+
+    Attributes:
+        name (CharField): The name of the project.
+        description (TextField): A detailed description of the project.
+        created_at (DateTimeField): The timestamp when the project was created.
+        updated_at (DateTimeField): The timestamp when the project was last updated.
+    """
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -17,7 +28,22 @@ class Project(models.Model):
 
 
 class Indicator(models.Model):
-    """Indicator/Requirement model for checklist items."""
+    """
+    Represents a single compliance indicator or checklist item within a project.
+
+    Attributes:
+        project (ForeignKey): The project to which this indicator belongs.
+        area (CharField): The compliance area (e.g., 'Safety', 'Documentation').
+        regulation_or_standard (CharField): The specific regulation or standard.
+        requirement (TextField): The detailed requirement for the indicator.
+        evidence_required (TextField): Description of the evidence needed.
+        responsible_person (CharField): The person or role responsible.
+        frequency (CharField): How often the indicator is checked (e.g., 'Annual').
+        status (CharField): The current compliance status of the indicator.
+        assigned_to (CharField): The person to whom this indicator is assigned.
+        created_at (DateTimeField): The timestamp when the indicator was created.
+        updated_at (DateTimeField): The timestamp when the indicator was last updated.
+    """
     
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -46,7 +72,19 @@ class Indicator(models.Model):
 
 
 class Evidence(models.Model):
-    """Evidence model for supporting documents and links."""
+    """
+    Represents evidence for a compliance indicator.
+
+    Evidence can be a file upload, a URL, or textual notes.
+
+    Attributes:
+        indicator (ForeignKey): The indicator this evidence supports.
+        title (CharField): The title of the evidence.
+        file (FileField): An uploaded file.
+        url (URLField): A URL pointing to external evidence.
+        notes (TextField): Textual notes or descriptions.
+        uploaded_at (DateTimeField): The timestamp when the evidence was uploaded.
+    """
     indicator = models.ForeignKey(Indicator, on_delete=models.CASCADE, related_name='evidence')
     title = models.CharField(max_length=255)
     file = models.FileField(upload_to='evidence/', blank=True, null=True)

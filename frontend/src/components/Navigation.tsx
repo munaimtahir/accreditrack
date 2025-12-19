@@ -2,6 +2,15 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../services/api';
 
+/**
+ * Navigation component for the application.
+ *
+ * This component renders the main navigation bar, which is visible only to
+ * authenticated users. It includes links to the main sections of the application
+ * and a logout button.
+ *
+ * @returns {React.ReactElement|null} The navigation bar component or null if the user is not authenticated.
+ */
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
   const isAuthenticated = authService.isAuthenticated();

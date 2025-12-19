@@ -17,7 +17,18 @@ except ImportError:
 
 
 def get_gemini_response(prompt):
-    """Helper function to get response from Gemini API."""
+    """
+    Sends a prompt to the Google Gemini API and returns the response.
+
+    This function checks for the availability of the Gemini API and the API key
+    before making a request. It uses the 'gemini-2.0-flash-exp' model.
+
+    Args:
+        prompt (str): The prompt to send to the Gemini API.
+
+    Returns:
+        dict: A dictionary containing either the 'result' from the API or an 'error' message.
+    """
     if not GEMINI_AVAILABLE:
         return {"error": "Gemini API is not available. Please install google-generativeai package."}
     
@@ -39,9 +50,16 @@ def get_gemini_response(prompt):
 @permission_classes([IsAuthenticated])
 def analyze_checklist(request):
     """
-    Analyze a compliance checklist and provide insights.
-    
-    Expected input: { "checklist": "text or structured data" }
+    Analyzes a compliance checklist using the Gemini AI.
+
+    This endpoint expects a 'checklist' in the request data and returns
+    an AI-generated analysis of it.
+
+    Args:
+        request (Request): The request object, containing the checklist data.
+
+    Returns:
+        Response: A response object with the AI's analysis or an error.
     """
     checklist_data = request.data.get('checklist', '')
     
@@ -69,9 +87,16 @@ def analyze_checklist(request):
 @permission_classes([IsAuthenticated])
 def analyze_categorization(request):
     """
-    Categorize indicators into logical groups.
-    
-    Expected input: { "indicators": ["list", "of", "indicators"] }
+    Categorizes a list of compliance indicators using the Gemini AI.
+
+    This endpoint expects a list of 'indicators' in the request data and
+    returns AI-generated categories for them.
+
+    Args:
+        request (Request): The request object, containing the indicators list.
+
+    Returns:
+        Response: A response object with the AI's categorization or an error.
     """
     indicators = request.data.get('indicators', [])
     
@@ -98,9 +123,16 @@ def analyze_categorization(request):
 @permission_classes([IsAuthenticated])
 def ask_assistant(request):
     """
-    Ask the AI assistant a compliance-related question.
-    
-    Expected input: { "question": "your question here" }
+    Answers a compliance-related question using the Gemini AI.
+
+    This endpoint expects a 'question' in the request data and returns a
+    detailed answer from the AI assistant.
+
+    Args:
+        request (Request): The request object, containing the user's question.
+
+    Returns:
+        Response: A response object with the AI's answer or an error.
     """
     question = request.data.get('question', '')
     
@@ -127,9 +159,16 @@ def ask_assistant(request):
 @permission_classes([IsAuthenticated])
 def report_summary(request):
     """
-    Generate a summary report from compliance data.
-    
-    Expected input: { "data": "compliance data to summarize" }
+    Generates a summary report from compliance data using the Gemini AI.
+
+    This endpoint expects 'data' in the request data and returns a
+    comprehensive summary report.
+
+    Args:
+        request (Request): The request object, containing the compliance data.
+
+    Returns:
+        Response: A response object with the AI-generated summary or an error.
     """
     data = request.data.get('data', '')
     
@@ -160,9 +199,17 @@ def report_summary(request):
 @permission_classes([IsAuthenticated])
 def convert_document(request):
     """
-    Convert documents between formats or extract information.
-    
-    Expected input: { "content": "document content", "target_format": "desired format" }
+    Converts document content to a specified format using the Gemini AI.
+
+    This endpoint expects 'content' and an optional 'target_format' in the
+    request data.
+
+    Args:
+        request (Request): The request object, containing the document content
+                         and target format.
+
+    Returns:
+        Response: A response object with the converted document or an error.
     """
     content = request.data.get('content', '')
     target_format = request.data.get('target_format', 'structured')
@@ -190,9 +237,15 @@ def convert_document(request):
 @permission_classes([IsAuthenticated])
 def compliance_guide(request):
     """
-    Generate a compliance guide for a specific standard or regulation.
-    
-    Expected input: { "standard": "name of standard/regulation" }
+    Generates a compliance guide for a standard or regulation using the Gemini AI.
+
+    This endpoint expects a 'standard' name in the request data.
+
+    Args:
+        request (Request): The request object, containing the standard name.
+
+    Returns:
+        Response: A response object with the AI-generated guide or an error.
     """
     standard = request.data.get('standard', '')
     
@@ -221,9 +274,15 @@ def compliance_guide(request):
 @permission_classes([IsAuthenticated])
 def analyze_tasks(request):
     """
-    Analyze tasks and provide optimization recommendations.
-    
-    Expected input: { "tasks": ["task1", "task2", ...] }
+    Analyzes a list of tasks and provides optimization recommendations using the Gemini AI.
+
+    This endpoint expects a list of 'tasks' in the request data.
+
+    Args:
+        request (Request): The request object, containing the list of tasks.
+
+    Returns:
+        Response: A response object with the AI's analysis or an error.
     """
     tasks = request.data.get('tasks', [])
     

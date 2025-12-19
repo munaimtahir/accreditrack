@@ -3,7 +3,11 @@ from .models import Project, Indicator, Evidence
 
 
 class ProjectSerializer(serializers.ModelSerializer):
-    """Serializer for Project model."""
+    """
+    Serializes Project model instances.
+
+    Includes a calculated field for the number of associated indicators.
+    """
     indicators_count = serializers.SerializerMethodField()
     
     class Meta:
@@ -12,11 +16,22 @@ class ProjectSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
     
     def get_indicators_count(self, obj):
+        """
+        Calculates the number of indicators associated with the project.
+
+        Args:
+            obj (Project): The project instance.
+
+        Returns:
+            int: The count of indicators for the project.
+        """
         return obj.indicators.count()
 
 
 class EvidenceSerializer(serializers.ModelSerializer):
-    """Serializer for Evidence model."""
+    """
+    Serializes Evidence model instances.
+    """
     
     class Meta:
         model = Evidence
@@ -25,7 +40,11 @@ class EvidenceSerializer(serializers.ModelSerializer):
 
 
 class IndicatorSerializer(serializers.ModelSerializer):
-    """Serializer for Indicator model."""
+    """
+    Serializes Indicator model instances.
+
+    Includes nested serialization of related evidence and a count of evidence items.
+    """
     evidence = EvidenceSerializer(many=True, read_only=True)
     evidence_count = serializers.SerializerMethodField()
     
@@ -40,4 +59,13 @@ class IndicatorSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
     
     def get_evidence_count(self, obj):
+        """
+        Calculates the number of evidence items associated with the indicator.
+
+        Args:
+            obj (Indicator): The indicator instance.
+
+        Returns:
+            int: The count of evidence for the indicator.
+        """
         return obj.evidence.count()

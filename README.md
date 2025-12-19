@@ -44,6 +44,8 @@ AccrediFy is a comprehensive platform for medical institutions, laboratories, an
 
 ## Architecture
 
+The application is containerized using Docker and follows a classic client-server architecture, with Nginx acting as a reverse proxy.
+
 ```
 Browser
   ↓
@@ -55,6 +57,21 @@ NGINX (port 80)
         ↓
      Gemini API (AI features)
 ```
+
+### Directory Structure
+
+- **`backend/`**: Contains the Django REST Framework application that serves the API.
+  - **`api/`**: The core Django app for models, views, and serializers.
+  - **`accredify_backend/`**: The main Django project configuration.
+  - **`requirements.txt`**: Python dependencies.
+- **`frontend/`**: Contains the React/TypeScript single-page application.
+  - **`src/`**: The main source code for the frontend.
+    - **`components/`**: Reusable React components.
+    - **`pages/`**: The main pages of the application.
+    - **`services/`**: API service layer for communicating with the backend.
+- **`nginx/`**: Nginx configuration files for routing traffic.
+- **`docker-compose.yml`**: Defines the services, networks, and volumes for the Docker application.
+- **`Dockerfile`**: Used to build the production Nginx image, which includes the built frontend.
 
 ## Quick Start
 

@@ -9,6 +9,20 @@ interface Project {
   indicators_count: number;
 }
 
+/**
+ * The Projects page component.
+ *
+ * This component handles the display, creation, updating, and deletion of projects.
+ * It features a table to list the projects and a form to add or edit them.
+ *
+ * @state
+ * @property {Project[]} projects - An array of project objects fetched from the server.
+ * @property {boolean} showForm - A boolean to control the visibility of the project form.
+ * @property {object} formData - An object to hold the data of the project being created or edited.
+ * @property {number|null} editingId - The ID of the project being edited, or null if creating a new project.
+ *
+ * @returns {React.ReactElement} The rendered projects page.
+ */
 const Projects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [showForm, setShowForm] = useState(false);
