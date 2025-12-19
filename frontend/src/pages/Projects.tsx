@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { projectService } from '../services/api';
 
 interface Project {
@@ -24,6 +25,7 @@ interface Project {
  * @returns {React.ReactElement} The rendered projects page.
  */
 const Projects: React.FC = () => {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '' });
@@ -136,6 +138,12 @@ const Projects: React.FC = () => {
                   <td style={{ padding: '10px' }}>{project.indicators_count}</td>
                   <td style={{ padding: '10px' }}>{new Date(project.created_at).toLocaleDateString()}</td>
                   <td style={{ padding: '10px' }}>
+                    <button 
+                      onClick={() => navigate(`/projects/${project.id}/evidence`)}
+                      style={{ marginRight: '5px', backgroundColor: '#2196f3', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      Evidence Library
+                    </button>
                     <button onClick={() => handleEdit(project)} style={{ marginRight: '5px' }}>Edit</button>
                     <button onClick={() => handleDelete(project.id)}>Delete</button>
                   </td>

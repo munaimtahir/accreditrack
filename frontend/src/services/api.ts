@@ -266,4 +266,12 @@ export const aiService = {
    */
   analyzeTasks: (tasks: string[]) => 
     api.post('/analyze-tasks/', { tasks }),
+  
+  getEvidenceAssistance: (indicatorId: number, assistanceType?: string) => {
+    const params = { indicator_id: indicatorId };
+    if (assistanceType) {
+      return api.post('/evidence-assistance/', { indicator_id: indicatorId, assistance_type: assistanceType });
+    }
+    return api.get('/evidence-assistance/', { params });
+  },
 };

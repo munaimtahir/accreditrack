@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Indicators from './pages/Indicators';
 import AIAssistant from './pages/AIAssistant';
+import EvidenceLibrary from './pages/EvidenceLibrary';
 
 const App: React.FC = () => {
   return (
@@ -44,6 +45,14 @@ const App: React.FC = () => {
             element={
               <PrivateRoute>
                 <AIAssistant />
+              </PrivateRoute>
+            } 
+          />
+          <Route 
+            path="/projects/:projectId/evidence" 
+            element={
+              <PrivateRoute>
+                <EvidenceLibrary />
               </PrivateRoute>
             } 
           />
