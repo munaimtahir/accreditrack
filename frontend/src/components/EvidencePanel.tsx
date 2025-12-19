@@ -37,7 +37,7 @@ interface Props {
   onEvidenceAdded: () => void;
 }
 
-const EvidencePanel: React.FC<Props> = ({ indicatorId, projectId, onEvidenceAdded }) => {
+const EvidencePanel: React.FC<Props> = ({ indicatorId, projectId: _projectId, onEvidenceAdded }) => {
   const [indicator, setIndicator] = useState<Indicator | null>(null);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [compliance, setCompliance] = useState<ComplianceStatus | null>(null);
