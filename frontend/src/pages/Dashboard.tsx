@@ -1,6 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+/**
+ * The main dashboard component for the application.
+ *
+ * This component serves as the landing page after login, providing an overview
+ * of the platform and quick links to the major sections like Projects,
+ * Indicators, and the AI Assistant.
+ *
+ * @returns {React.ReactElement} The rendered dashboard page.
+ */
 const Dashboard: React.FC = () => {
   return (
     <div style={{ padding: '20px' }}>

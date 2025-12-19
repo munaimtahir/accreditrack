@@ -15,6 +15,22 @@ interface Indicator {
   evidence_count: number;
 }
 
+/**
+ * The Indicators page component.
+ *
+ * This component provides a CRUD (Create, Read, Update, Delete) interface
+ * for managing compliance indicators. It displays a list of indicators and
+ * includes a form for creating and editing them.
+ *
+ * @state
+ * @property {Indicator[]} indicators - The list of indicators fetched from the API.
+ * @property {any[]} projects - The list of projects for the project selection dropdown.
+ * @property {boolean} showForm - Toggles the visibility of the create/edit form.
+ * @property {object} formData - Holds the data for the indicator being created or edited.
+ * @property {number|null} editingId - The ID of the indicator currently being edited, or null if creating a new one.
+ *
+ * @returns {React.ReactElement} The rendered Indicators page.
+ */
 const Indicators: React.FC = () => {
   const [indicators, setIndicators] = useState<Indicator[]>([]);
   const [projects, setProjects] = useState<any[]>([]);

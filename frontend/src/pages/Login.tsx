@@ -2,12 +2,32 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/api';
 
+/**
+ * The Login page component.
+ *
+ * This component provides a form for users to authenticate. On successful login,
+ * it redirects the user to the main dashboard.
+ *
+ * @state
+ * @property {string} username - Stores the value of the username input field.
+ * @property {string} password - Stores the value of the password input field.
+ * @property {string} error - Stores any error message to be displayed to the user.
+ *
+ * @returns {React.ReactElement} The rendered login page.
+ */
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  /**
+   * Handles the login form submission.
+   *
+   * It calls the authentication service and redirects on success, or displays an error on failure.
+   *
+   * @param {React.FormEvent} e The form submission event.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
