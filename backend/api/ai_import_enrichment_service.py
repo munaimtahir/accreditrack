@@ -21,10 +21,11 @@ from .ai_analysis_service import analyze_indicator_frequency
 logger = logging.getLogger(__name__)
 
 try:
-    import google.generativeai as genai
+    import google.generativeai as genai  # type: ignore
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
+    genai = None  # type: ignore
 
 
 def enrich_indicators_for_import(
@@ -146,7 +147,7 @@ def _enrich_batch_with_ai(indicators: List[Indicator]) -> Optional[List[Dict[str
     Returns:
         List of enrichment data dicts, one per indicator, or None if AI unavailable/fails
     """
-    if not GEMINI_AVAILABLE:
+    if not GEMINI_AVAILABLE or genai is None:
         return None
     
     api_key = settings.GEMINI_API_KEY
@@ -303,7 +304,7 @@ def _retry_batch_with_repair_prompt(
         return None
     
     try:
-        if not GEMINI_AVAILABLE:
+        if not GEMINI_AVAILABLE or genai is None:
             return None
         genai.configure(api_key=settings.GEMINI_API_KEY)
         model = genai.GenerativeModel('gemini-2.0-flash-exp')
@@ -461,7 +462,8 @@ def _save_enrichment_data(indicator: Indicator, enrichment_data: Dict[str, Any])
     
     # Update with enrichment data
     existing_data['import_enrichment'] = enrichment_data
-    indicator.ai_analysis_data = existing_data
+    # JSONField accepts dict directly
+    indicator.ai_analysis_data = existing_data  # type: ignore
     indicator.save(update_fields=['ai_analysis_data'])
 
 
