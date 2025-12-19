@@ -149,7 +149,7 @@ class CSVImportService:
             score = 10
         
         # Generate indicator key for idempotency
-        indicator_key = Indicator().generate_indicator_key_static(
+        indicator_key = Indicator.generate_indicator_key_static(
             self.project.id, section_name, standard_name, indicator_text
         )
         

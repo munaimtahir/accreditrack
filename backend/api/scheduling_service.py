@@ -77,7 +77,9 @@ def get_period_dates(normalized_frequency: str, reference_date: Optional[date] =
         return (start, end)
     
     elif freq_lower in ['bi-weekly', 'biweekly', 'fortnightly']:
-        # Two-week period
+        # Two-week period starting from Monday of current week
+        # Note: This uses week boundaries. For exact bi-weekly tracking,
+        # consider storing a reference start date with the indicator.
         start = reference_date - timedelta(days=reference_date.weekday())
         end = start + timedelta(days=13)
         return (start, end)

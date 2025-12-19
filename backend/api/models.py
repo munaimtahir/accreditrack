@@ -124,8 +124,8 @@ class Indicator(models.Model):
     
     def generate_indicator_key(self):
         """Generate deterministic key for idempotent imports."""
-        section_name = self.section.name if self.section else self.area
-        standard_name = self.standard.name if self.standard else self.regulation_or_standard
+        section_name = self.section.name if self.section else (self.area or '')
+        standard_name = self.standard.name if self.standard else (self.regulation_or_standard or '')
         
         key_string = f"{self.project_id}:{section_name}:{standard_name}:{self.requirement}"
         return hashlib.sha256(key_string.encode()).hexdigest()
@@ -133,6 +133,8 @@ class Indicator(models.Model):
     @staticmethod
     def generate_indicator_key_static(project_id, section_name, standard_name, requirement):
         """Generate deterministic key for idempotent imports (static version)."""
+        section_name = section_name or ''
+        standard_name = standard_name or ''
         key_string = f"{project_id}:{section_name}:{standard_name}:{requirement}"
         return hashlib.sha256(key_string.encode()).hexdigest()
 

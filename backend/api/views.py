@@ -10,7 +10,7 @@ from .serializers import (
     IndicatorStatusHistorySerializer, FrequencyLogSerializer
 )
 from .csv_import_service import CSVImportService
-from .scheduling_service import is_overdue, days_until_due
+from .scheduling_service import is_overdue, days_until_due, get_period_dates
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -123,7 +123,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
                     # Include if overdue or within the future window
                     if due_date <= future_date:
                         # Check if there's a log for the current period
-                        from .scheduling_service import get_period_dates
                         period_start, period_end = get_period_dates(
                             indicator.normalized_frequency or indicator.frequency,
                             today

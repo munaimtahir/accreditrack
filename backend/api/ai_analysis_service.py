@@ -90,7 +90,7 @@ def _rule_based_frequency_detection(frequency_text: str) -> Optional[Dict]:
     
     # Recurring patterns with normalization
     recurring_patterns = {
-        'daily': ['daily', 'every day', 'each day'],
+        'Daily': ['daily', 'every day', 'each day'],
         'Weekly': ['weekly', 'every week', 'each week'],
         'Bi-weekly': ['bi-weekly', 'biweekly', 'every 2 weeks', 'every two weeks', 'fortnightly'],
         'Monthly': ['monthly', 'every month', 'each month'],
