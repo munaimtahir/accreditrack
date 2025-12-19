@@ -17,7 +17,7 @@ if [ ! -f .env ]; then
     sed -i "s/DB_PASSWORD=/DB_PASSWORD=accredify_password_change_me/" .env
     sed -i "s/DJANGO_SECRET_KEY=/DJANGO_SECRET_KEY=$SECRET_KEY/" .env
     
-    echo "✅ .env file created. Please update DB_PASSWORD and GEMINI_API_KEY if needed."
+    echo "✅ .env file created with Gemini API key configured."
 fi
 
 # Build frontend locally

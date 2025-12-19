@@ -72,6 +72,8 @@ This script will:
 - Run database migrations
 - Create admin user (admin/admin123)
 
+**For VPS deployment**, see [QUICKSTART.md](QUICKSTART.md) for one-command deployment.
+
 ### Manual Setup
 
 1. Clone the repository:
@@ -227,13 +229,33 @@ See `.env.template` for all available configuration options.
 
 ## Production Deployment
 
+For detailed production deployment instructions to a VPS, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+### Quick VPS Deployment
+
+```bash
+chmod +x deploy-to-vps.sh
+./deploy-to-vps.sh
+```
+
+The automated deployment script will:
+- Configure for VPS IP: 172.104.187.212
+- Set up Gemini API integration (gemini-2.0-flash-exp model)
+- Build and deploy all Docker services
+- Run comprehensive health checks
+- Verify API and database connectivity
+
+### Manual Deployment
+
 1. Set `DEBUG=False` in `.env`
-2. Configure `ALLOWED_HOSTS` with your domain
+2. Configure `ALLOWED_HOSTS` with your domain/IP
 3. Set strong passwords and secret keys
-4. Consider using a managed PostgreSQL service
+4. Configure Gemini API key for AI features
 5. Set up SSL/TLS certificates for HTTPS
 6. Configure proper backup strategies
 7. Monitor application logs and metrics
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete instructions.
 
 ## API Documentation
 
