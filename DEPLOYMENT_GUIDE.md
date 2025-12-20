@@ -43,15 +43,17 @@ Before running the deployment script, ensure you have:
 The script uses the following environment variables (all optional):
 
 - `VPS_IP`: Your server's IP address (default: `172.104.187.212`)
-- `GEMINI_API_KEY`: Your Gemini AI API key (default: pre-configured key)
+- `GEMINI_API_KEY`: Your Gemini AI API key (required for AI features)
 
-Set them before running the script:
+**IMPORTANT**: For security, set `GEMINI_API_KEY` via environment variable:
 
 ```bash
 export VPS_IP="your.server.ip"
-export GEMINI_API_KEY="your-api-key"
+export GEMINI_API_KEY="your-api-key"  # DO NOT commit this to git
 ./deploy.sh
 ```
+
+If `GEMINI_API_KEY` is not set, AI features will not work.
 
 ### .env File
 
@@ -81,12 +83,28 @@ After successful deployment:
 
 ## Default Credentials
 
+⚠️ **CRITICAL SECURITY WARNING** ⚠️
+
+The deployment creates a default admin account with **PUBLICLY KNOWN** credentials:
+
 ```
 Username: admin
 Password: admin123
 ```
 
-⚠️ **IMPORTANT**: Change the admin password after first login!
+🚨 **YOU MUST CHANGE THIS PASSWORD IMMEDIATELY AFTER FIRST LOGIN!** 🚨
+
+These credentials are documented publicly and should be considered compromised. Failure to change them immediately exposes your application to unauthorized access.
+
+To change the password:
+1. Log in with the default credentials
+2. Go to Admin Panel → Users → admin
+3. Change password immediately
+
+Or via command line:
+```bash
+docker compose exec backend python manage.py changepassword admin
+```
 
 ## Useful Commands
 

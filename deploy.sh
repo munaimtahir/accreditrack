@@ -15,7 +15,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 VPS_IP="${VPS_IP:-172.104.187.212}"
-GEMINI_API_KEY="${GEMINI_API_KEY:-AIzaSyAvK-H204qOxbincL3UZaiU1f8bSglvULg}"
+GEMINI_API_KEY="${GEMINI_API_KEY:-}"  # Set via environment variable or will prompt
+HEALTHCHECK_ENDPOINT="/api/"
 LOG_FILE="deployment_$(date +%Y%m%d_%H%M%S).log"
 
 # Logging functions
@@ -174,10 +175,10 @@ setup_environment() {
     done
     log_info "  DB_PASSWORD=***HIDDEN***"
     log_info "  DJANGO_SECRET_KEY=***HIDDEN***"
-    if grep -q "GEMINI_API_KEY=.\+" .env; then
+    if grep -q "GEMINI_API_KEY=.\+" .env 2>/dev/null && [ -n "$(grep GEMINI_API_KEY .env | cut -d= -f2)" ]; then
         log_info "  GEMINI_API_KEY=***CONFIGURED***"
     else
-        log_warning "  GEMINI_API_KEY=***NOT CONFIGURED***"
+        log_warning "  GEMINI_API_KEY=***NOT CONFIGURED*** (AI features will not work)"
     fi
 }
 
@@ -190,7 +191,11 @@ build_frontend() {
         cd frontend
         
         if command_exists npm; then
-            npm ci 2>&1 | tee -a "../$LOG_FILE"
+            log "Running npm ci (clean install)..."
+            if ! npm ci 2>&1 | tee -a "../$LOG_FILE"; then
+                log_warning "npm ci failed, trying npm install instead..."
+                npm install 2>&1 | tee -a "../$LOG_FILE"
+            fi
             
             log "Building frontend production bundle..."
             npm run build 2>&1 | tee -a "../$LOG_FILE"
@@ -264,8 +269,8 @@ wait_for_services() {
     log "Waiting for backend to be healthy..."
     local backend_ready=false
     for i in {1..60}; do
-        # Using /api/ endpoint instead of /admin/ for healthcheck
-        if docker compose exec -T backend curl -f http://localhost:8000/api/ >/dev/null 2>&1; then
+        # Using ${HEALTHCHECK_ENDPOINT} instead of /admin/ for healthcheck
+        if docker compose exec -T backend curl -f "http://localhost:8000${HEALTHCHECK_ENDPOINT}" >/dev/null 2>&1; then
             log "✅ Backend is healthy"
             backend_ready=true
             break
@@ -322,8 +327,8 @@ run_health_checks() {
     echo "" | tee -a "$LOG_FILE"
     
     log "Testing API endpoint..."
-    if curl -f http://localhost/api/ >/dev/null 2>&1; then
-        log "✅ API is accessible at http://localhost/api/"
+    if curl -f "http://localhost${HEALTHCHECK_ENDPOINT}" >/dev/null 2>&1; then
+        log "✅ API is accessible at http://localhost${HEALTHCHECK_ENDPOINT}"
     else
         log_warning "API may not be fully accessible"
     fi
