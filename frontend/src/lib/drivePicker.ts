@@ -54,9 +54,8 @@ export const pickFolder = async (accessToken: string): Promise<PickerResult> => 
 
   return new Promise((resolve, reject) => {
     try {
-      const view = new window.google.picker.DocsView(window.google.picker.ViewId.FOLDERS)
-        .setIncludeFolders(true)
-        .setSelectFolderEnabled(true);
+      // Create a folder view - FOLDERS ViewId already shows folders
+      const view = new window.google.picker.DocsView(window.google.picker.ViewId.FOLDERS);
 
       const picker = new window.google.picker.PickerBuilder()
         .setAppId(APP_ID)
