@@ -7,7 +7,6 @@ from typing import Dict, List, Any
 from django.db import transaction
 from django.contrib.auth.models import User
 from .models import Project, Section, Standard, Indicator
-from .ai_analysis_service import analyze_indicator_frequency
 
 
 class CSVImportResult:
@@ -88,20 +87,23 @@ class CSVImportService:
                 return self.result
             
             # Process rows in a single transaction
-            with transaction.atomic():
-                for row_num, row in enumerate(csv_reader, start=2):  # Start at 2 (1 is header)
-                    try:
+            try:
+                with transaction.atomic():
+                    for row_num, row in enumerate(csv_reader, start=2):  # Start at 2 (1 is header)
                         indicator = self._process_row(row, row_num)
                         if indicator:
                             self.result.indicators_processed.append(indicator)
-                    except Exception as e:
-                        self.result.rows_skipped += 1
-                        self.result.errors.append({
-                            'row': row_num,
-                            'error': str(e)
-                        })
-            
-            # Run AI enrichment if requested
+            except Exception as e:
+                # If any row fails, the entire transaction is rolled back.
+                self.result.errors.append({
+                    'row': row_num,
+                    'error': f'The entire file import was rolled back due to an error on row {row_num}: {str(e)}'
+                })
+                # Reset indicators_processed as the transaction failed
+                self.result.indicators_processed = []
+                return self.result
+
+            # Run AI enrichment if requested and the import was successful
             if run_ai_enrichment and self.result.indicators_processed:
                 try:
                     from .ai_import_enrichment_service import enrich_indicators_for_import
@@ -212,24 +214,6 @@ class CSVImportService:
                 indicator.assigned_user = user
             else:
                 self.result.unmatched_users.append(assigned_to)
-        
-        # Analyze frequency using AI
-        if frequency:
-            ai_result = analyze_indicator_frequency(
-                section_name, standard_name, indicator_text, 
-                evidence_required, frequency
-            )
-            
-            if ai_result:
-                indicator.schedule_type = ai_result.get('schedule_type', 'one_time')
-                indicator.normalized_frequency = ai_result.get('normalized_frequency', '')
-                indicator.ai_analysis_data = ai_result.get('analysis_data')
-                indicator.ai_confidence_score = ai_result.get('confidence_score')
-                
-                # Calculate next due date if recurring
-                if indicator.schedule_type == 'recurring' and indicator.normalized_frequency:
-                    from .scheduling_service import calculate_next_due_date
-                    indicator.next_due_date = calculate_next_due_date(indicator.normalized_frequency)
         
         # Save indicator
         indicator.save()

@@ -351,3 +351,35 @@ class GoogleDriveFolderCache(models.Model):
     
     def __str__(self):
         return f"{self.project.name} - {self.folder_path}"
+
+
+class PendingDigitalFormTemplate(models.Model):
+    """Stores AI-generated DigitalFormTemplates that require human review."""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    indicator = models.ForeignKey(Indicator, on_delete=models.CASCADE, related_name='pending_form_templates')
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    form_fields = models.JSONField(help_text="AI-proposed field definitions for the form")
+
+    # Review status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    # Audit trail
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_pending_form_templates')
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_pending_form_templates')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.get_status_display()}) - {self.indicator.requirement[:30]}"
