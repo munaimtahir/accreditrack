@@ -21,7 +21,10 @@ const findFolder = async (
   parentId: string,
   folderName: string
 ): Promise<string | null> => {
-  const query = `name='${folderName.replace(/'/g, "\\'")}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  // Properly escape folder name for Drive API query
+  // First escape backslashes, then escape single quotes
+  const escapedFolderName = folderName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const query = `name='${escapedFolderName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   
   const response = await fetch(
     `${DRIVE_API_BASE}/files?q=${encodeURIComponent(query)}&fields=files(id)`,
