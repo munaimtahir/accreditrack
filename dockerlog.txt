@@ -1,0 +1,1038 @@
+════════════════════════════════════════════════════════════╗
+║        AccrediFy VPS Deployment Automation Script          ║
+║                                                            ║
+║  This script will deploy AccrediFy to your VPS with:      ║
+║  • Complete environment setup                             ║
+║  • Docker container deployment                            ║
+║  • Health checks and validation                           ║
+║  • Gemini AI API integration                              ║
+║  • Automated debugging                                    ║
+╚════════════════════════════════════════════════════════════╝
+
+
+[2025-12-20 05:35:12] 🚀 Starting AccrediFy deployment to VPS 172.104.187.212...
+[2025-12-20 05:35:12] 📝 Deployment log: deployment_20251220_053512.log
+
+
+========================================
+Validating Prerequisites
+========================================
+[2025-12-20 05:35:13] ✓ Docker found: Docker version 29.1.3, build f52814d
+[2025-12-20 05:35:13] ✓ Docker Compose found: Docker Compose version v5.0.0
+[2025-12-20 05:35:13] ✓ Docker daemon is running
+[2025-12-20 05:35:13] ✓ Internet connectivity available
+[2025-12-20 05:35:13] ✓ Sufficient disk space: 19GB available
+[2025-12-20 05:35:13] ✅ All prerequisites validated successfully
+
+========================================
+Setting Up Environment
+========================================
+[INFO] .env file already exists, verifying configuration...
+[2025-12-20 05:35:13] ✅ .env file verified and updated
+[INFO] Current configuration:
+[INFO]   # Database Configuration
+[INFO]   DB_NAME=accredify
+[INFO]   DB_USER=accredify
+[INFO]   DB_HOST=db
+[INFO]   DB_PORT=5432
+[INFO]
+[INFO]   # Django Configuration
+[INFO]   DEBUG=False
+[INFO]   ALLOWED_HOSTS=localhost,127.0.0.1,172.104.187.212
+[INFO]   CORS_ALLOWED_ORIGINS=http://localhost,http://127.0.0.1,http://172.104.187.212
+[INFO]
+[INFO]   # Gemini AI API Key (for AI-powered compliance analysis)
+[INFO]   DB_PASSWORD=***HIDDEN***
+[INFO]   DJANGO_SECRET_KEY=***HIDDEN***
+[INFO]   GEMINI_API_KEY=***CONFIGURED***
+
+========================================
+Building Frontend
+========================================
+[2025-12-20 05:35:13] Installing frontend dependencies...
+
+added 94 packages, and audited 95 packages in 3s
+
+13 packages are looking for funding
+  run `npm fund` for details
+
+2 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+[2025-12-20 05:35:16] Building frontend production bundle...
+
+> accredify-frontend@1.0.0 build
+> tsc && vite build
+
+vite v5.4.21 building for production...
+✓ 99 modules transformed.
+dist/index.html                   0.42 kB │ gzip:  0.29 kB
+dist/assets/index-BYHikfqQ.css    0.41 kB │ gzip:  0.28 kB
+dist/assets/index-DD0YZTyt.js   236.74 kB │ gzip: 76.16 kB
+✓ built in 2.72s
+[2025-12-20 05:35:23] ✅ Frontend built successfully (size: 248K)
+
+========================================
+Cleaning Up Old Deployment
+========================================
+[2025-12-20 05:35:23] Stopping existing containers...
+[2025-12-20 05:35:24] ✅ Cleanup completed
+
+========================================
+Building and Deploying Services
+========================================
+[2025-12-20 05:35:24] Building Docker images...
+time="2025-12-20T05:35:24Z" level=warning msg="/root/app/accreditrack/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+ Image accreditrack-frontend Building
+ Image accreditrack-nginx Building
+ Image accreditrack-backend Building
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.46kB done
+#1 DONE 0.0s
+
+#2 [backend internal] load build definition from Dockerfile
+#2 transferring dockerfile: 894B 0.0s done
+#2 DONE 0.0s
+
+#3 [frontend internal] load build definition from Dockerfile
+#3 transferring dockerfile: 527B 0.0s done
+#3 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 2)
+#3 DONE 0.0s
+
+#4 [nginx internal] load build definition from Dockerfile
+#4 transferring dockerfile: 631B 0.0s done
+#4 WARN: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 2)
+#4 DONE 0.1s
+
+#5 [frontend internal] load metadata for docker.io/library/node:18-alpine
+#5 DONE 3.1s
+
+#6 [nginx internal] load metadata for docker.io/library/nginx:alpine
+#6 DONE 3.0s
+
+#7 [nginx internal] load .dockerignore
+#7 transferring context:
+#7 transferring context: 451B done
+#7 DONE 0.0s
+
+#8 [frontend internal] load .dockerignore
+#8 transferring context: 2B done
+#8 DONE 0.0s
+
+#9 [frontend internal] load build context
+#9 DONE 0.0s
+
+#10 [backend internal] load metadata for docker.io/library/python:3.11-slim
+#10 DONE 3.2s
+
+#11 [frontend stage-1 1/3] FROM docker.io/library/nginx:alpine@sha256:8491795299c8e739b7fcc6285d531d9812ce2666e07bd3dd8db00020ad132295
+#11 resolve docker.io/library/nginx:alpine@sha256:8491795299c8e739b7fcc6285d531d9812ce2666e07bd3dd8db00020ad132295
+#11 ...
+
+#12 [backend internal] load .dockerignore
+#12 transferring context: 2B 0.1s done
+#12 DONE 0.1s
+
+#13 [backend internal] load build context
+#13 DONE 0.0s
+
+#11 [nginx stage-1 1/3] FROM docker.io/library/nginx:alpine@sha256:8491795299c8e739b7fcc6285d531d9812ce2666e07bd3dd8db00020ad132295
+#11 resolve docker.io/library/nginx:alpine@sha256:8491795299c8e739b7fcc6285d531d9812ce2666e07bd3dd8db00020ad132295 0.3s done
+#11 ...
+
+#13 [backend internal] load build context
+#13 transferring context: 219.38kB 0.1s done
+#13 DONE 0.3s
+
+#14 [nginx internal] load build context
+#14 ...
+
+#15 [backend 1/8] FROM docker.io/library/python:3.11-slim@sha256:158caf0e080e2cd74ef2879ed3c4e697792ee65251c8208b7afb56683c32ea6c
+#15 resolve docker.io/library/python:3.11-slim@sha256:158caf0e080e2cd74ef2879ed3c4e697792ee65251c8208b7afb56683c32ea6c 0.3s done
+#15 DONE 1.2s
+
+#14 [nginx internal] load build context
+#14 ...
+
+#9 [frontend internal] load build context
+#9 transferring context: 71.34MB 3.2s done
+#9 DONE 3.3s
+
+#14 [nginx internal] load build context
+#14 transferring context: 71.37MB 3.7s done
+#14 DONE 3.7s
+
+#16 [frontend frontend-build 1/6] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#16 resolve docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e 0.3s done
+#16 sha256:dd71dde834b5c203d162902e6b8994cb2309ae049a0eabc4efea161b2b5a3d0e 22.02MB / 40.01MB 2.6s
+#16 sha256:1e5a4c89cee5c0826c540ab06d4b6b491c96eda01837f430bd47f0d26702d6e3 1.26MB / 1.26MB 0.7s done
+#16 sha256:25ff2da83641908f65c3a74d80409d6b1b62ccfaab220b9ea70b80df5a2e0549 446B / 446B 1.0s done
+#16 sha256:f18232174bc91741fdf3da96d85011092101a032a93a388b79e99e69c2d5c870 3.64MB / 3.64MB 1.4s done
+#16 extracting sha256:f18232174bc91741fdf3da96d85011092101a032a93a388b79e99e69c2d5c870 0.7s done
+#16 sha256:dd71dde834b5c203d162902e6b8994cb2309ae049a0eabc4efea161b2b5a3d0e 29.36MB / 40.01MB 2.7s
+#16 sha256:dd71dde834b5c203d162902e6b8994cb2309ae049a0eabc4efea161b2b5a3d0e 40.01MB / 40.01MB 2.9s
+#16 sha256:dd71dde834b5c203d162902e6b8994cb2309ae049a0eabc4efea161b2b5a3d0e 40.01MB / 40.01MB 2.9s done
+#16 extracting sha256:dd71dde834b5c203d162902e6b8994cb2309ae049a0eabc4efea161b2b5a3d0e
+#16 ...
+
+#15 [backend 1/8] FROM docker.io/library/python:3.11-slim@sha256:158caf0e080e2cd74ef2879ed3c4e697792ee65251c8208b7afb56683c32ea6c
+#15 sha256:3f0cdbca744e7bd0ce0ff6da73b9148829b04309925992954a314ba203f56e99 249B / 249B 0.6s done
+#15 sha256:4d55cfecf3663813d03c369bcd532b89f41cf07b65d95887ef686538370a747c 14.36MB / 14.36MB 1.6s done
+#15 sha256:72cf4c3b83019e176aba979aba419d35f56576bbcfc4f7249a1ab1d4b536730b 1.29MB / 1.29MB 1.0s done
+#15 sha256:1733a4cd59540b3470ff7a90963bcdea5b543279dd6bdaf022d7883fdad221e5 29.78MB / 29.78MB 1.4s done
+#15 extracting sha256:1733a4cd59540b3470ff7a90963bcdea5b543279dd6bdaf022d7883fdad221e5 2.7s done
+#15 DONE 6.6s
+
+#11 [frontend stage-1 1/3] FROM docker.io/library/nginx:alpine@sha256:8491795299c8e739b7fcc6285d531d9812ce2666e07bd3dd8db00020ad132295
+#11 sha256:de54cb821236c86af111bf7a17c40e42b3a5ad0e08c1a5ec76fb654d35f58df8 17.26MB / 17.26MB 0.9s done
+#11 sha256:085c5e5aaa8eb4b957ecf253c74f16a6a5551231de3fb7c3ac74814a6bf17e06 1.21kB / 1.21kB 0.7s done
+#11 sha256:0abf9e5672665202e79f26f23ef5dbd12558e2ea51ac32807922ab76fdb24ab0 1.40kB / 1.40kB 0.8s done
+#11 sha256:33f95a0f3229b49e777082e801b882b13fcc5b4e389410ce8eb066f4d58c71b9 403B / 403B 0.8s done
+#11 sha256:da7c973d8b92a1555060972c8849a332c93bfe2608c11faeee2098c4cfbe8c3d 953B / 953B 0.6s done
+#11 sha256:567f84da6fbd4287d40a5837485469435c40a81f9a94e98395b6385d3600643a 626B / 626B 0.6s done
+#11 sha256:25f453064fd3e8a9754b6e51b86c637e13203cbfc748fcf73f3c8b2d10816ae3 1.86MB / 1.86MB 0.6s done
+#11 sha256:1074353eec0db2c1d81d5af2671e56e00cf5738486f5762609ea33d606f88612 3.86MB / 3.86MB 0.6s done
+#11 extracting sha256:1074353eec0db2c1d81d5af2671e56e00cf5738486f5762609ea33d606f88612 0.5s done
+#11 extracting sha256:25f453064fd3e8a9754b6e51b86c637e13203cbfc748fcf73f3c8b2d10816ae3 0.2s done
+#11 extracting sha256:567f84da6fbd4287d40a5837485469435c40a81f9a94e98395b6385d3600643a 0.0s done
+#11 extracting sha256:da7c973d8b92a1555060972c8849a332c93bfe2608c11faeee2098c4cfbe8c3d 0.0s done
+#11 extracting sha256:33f95a0f3229b49e777082e801b882b13fcc5b4e389410ce8eb066f4d58c71b9 0.0s done
+#11 extracting sha256:085c5e5aaa8eb4b957ecf253c74f16a6a5551231de3fb7c3ac74814a6bf17e06 0.0s done
+#11 extracting sha256:0abf9e5672665202e79f26f23ef5dbd12558e2ea51ac32807922ab76fdb24ab0 0.0s done
+#11 extracting sha256:de54cb821236c86af111bf7a17c40e42b3a5ad0e08c1a5ec76fb654d35f58df8
+#11 ...
+
+#15 [backend 1/8] FROM docker.io/library/python:3.11-slim@sha256:158caf0e080e2cd74ef2879ed3c4e697792ee65251c8208b7afb56683c32ea6c
+#15 extracting sha256:72cf4c3b83019e176aba979aba419d35f56576bbcfc4f7249a1ab1d4b536730b 0.3s done
+#15 DONE 6.8s
+
+#15 [backend 1/8] FROM docker.io/library/python:3.11-slim@sha256:158caf0e080e2cd74ef2879ed3c4e697792ee65251c8208b7afb56683c32ea6c
+#15 extracting sha256:4d55cfecf3663813d03c369bcd532b89f41cf07b65d95887ef686538370a747c
+#15 ...
+
+#11 [nginx stage-1 1/3] FROM docker.io/library/nginx:alpine@sha256:8491795299c8e739b7fcc6285d531d9812ce2666e07bd3dd8db00020ad132295
+#11 extracting sha256:de54cb821236c86af111bf7a17c40e42b3a5ad0e08c1a5ec76fb654d35f58df8 2.0s done
+#11 DONE 8.5s
+
+#16 [nginx frontend-build 1/6] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#16 extracting sha256:dd71dde834b5c203d162902e6b8994cb2309ae049a0eabc4efea161b2b5a3d0e 4.1s done
+#16 extracting sha256:1e5a4c89cee5c0826c540ab06d4b6b491c96eda01837f430bd47f0d26702d6e3 0.2s done
+#16 extracting sha256:25ff2da83641908f65c3a74d80409d6b1b62ccfaab220b9ea70b80df5a2e0549 0.1s done
+#16 DONE 8.5s
+
+#17 [frontend frontend-build 2/6] WORKDIR /app
+#17 DONE 0.1s
+
+#18 [nginx frontend-build 3/6] COPY frontend/package*.json ./
+#18 DONE 0.2s
+
+#19 [nginx frontend-build 4/6] RUN npm ci
+#19 ...
+
+#15 [backend 1/8] FROM docker.io/library/python:3.11-slim@sha256:158caf0e080e2cd74ef2879ed3c4e697792ee65251c8208b7afb56683c32ea6c
+#15 extracting sha256:4d55cfecf3663813d03c369bcd532b89f41cf07b65d95887ef686538370a747c 2.2s done
+#15 DONE 9.0s
+
+#15 [backend 1/8] FROM docker.io/library/python:3.11-slim@sha256:158caf0e080e2cd74ef2879ed3c4e697792ee65251c8208b7afb56683c32ea6c
+#15 extracting sha256:3f0cdbca744e7bd0ce0ff6da73b9148829b04309925992954a314ba203f56e99 0.0s done
+#15 DONE 9.0s
+
+#20 [backend 2/8] WORKDIR /app
+#20 DONE 0.1s
+
+#21 [backend 3/8] RUN apt-get update && apt-get install -y     postgresql-client     curl     && rm -rf /var/lib/apt/lists/*
+#21 0.772 Hit:1 http://deb.debian.org/debian trixie InRelease
+#21 0.773 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]
+#21 0.782 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#21 0.829 Get:4 http://deb.debian.org/debian trixie/main amd64 Packages [9670 kB]
+#21 0.979 Get:5 http://deb.debian.org/debian trixie-updates/main amd64 Packages [5412 B]
+#21 0.983 Get:6 http://deb.debian.org/debian-security trixie-security/main amd64 Packages [87.2 kB]
+#21 2.572 Fetched 9853 kB in 2s (4492 kB/s)
+#21 2.572 Reading package lists...
+#21 4.125 Reading package lists...
+#21 5.669 Building dependency tree...
+#21 6.106 Reading state information...
+#21 6.948 The following additional packages will be installed:
+#21 6.948   bash-completion krb5-locales libbrotli1 libcom-err2 libcurl4t64
+#21 6.948   libgdbm-compat4t64 libgnutls30t64 libgssapi-krb5-2 libidn2-0 libk5crypto3
+#21 6.948   libkeyutils1 libkrb5-3 libkrb5support0 libldap-common libldap2 libnghttp2-14
+#21 6.951   libnghttp3-9 libp11-kit0 libperl5.40 libpq5 libpsl5t64 librtmp1 libsasl2-2
+#21 6.951   libsasl2-modules libsasl2-modules-db libssh2-1t64 libtasn1-6 libunistring5
+#21 6.951   perl perl-modules-5.40 postgresql-client-17 postgresql-client-common
+#21 6.951   publicsuffix sensible-utils
+#21 6.954 Suggested packages:
+#21 6.954   gnutls-bin krb5-doc krb5-user libsasl2-modules-gssapi-mit
+#21 6.955   | libsasl2-modules-gssapi-heimdal libsasl2-modules-ldap libsasl2-modules-otp
+#21 6.957   libsasl2-modules-sql perl-doc libterm-readline-gnu-perl
+#21 6.957   | libterm-readline-perl-perl make libtap-harness-archive-perl postgresql-17
+#21 6.957   postgresql-doc-17
+#21 7.470 The following NEW packages will be installed:
+#21 7.473   bash-completion curl krb5-locales libbrotli1 libcom-err2 libcurl4t64
+#21 7.473   libgdbm-compat4t64 libgnutls30t64 libgssapi-krb5-2 libidn2-0 libk5crypto3
+#21 7.473   libkeyutils1 libkrb5-3 libkrb5support0 libldap-common libldap2 libnghttp2-14
+#21 7.476   libnghttp3-9 libp11-kit0 libperl5.40 libpq5 libpsl5t64 librtmp1 libsasl2-2
+#21 7.476   libsasl2-modules libsasl2-modules-db libssh2-1t64 libtasn1-6 libunistring5
+#21 7.476   perl perl-modules-5.40 postgresql-client postgresql-client-17
+#21 7.476   postgresql-client-common publicsuffix sensible-utils
+#21 7.573 0 upgraded, 36 newly installed, 0 to remove and 0 not upgraded.
+#21 7.573 Need to get 15.7 MB of archives.
+#21 7.573 After this operation, 81.7 MB of additional disk space will be used.
+#21 7.573 Get:1 http://deb.debian.org/debian trixie/main amd64 sensible-utils all 0.0.25 [25.0 kB]
+#21 7.580 Get:2 http://deb.debian.org/debian trixie/main amd64 bash-completion all 1:2.16.0-7 [319 kB]
+#21 7.584 Get:3 http://deb.debian.org/debian trixie/main amd64 krb5-locales all 1.21.3-5 [101 kB]
+#21 7.592 Get:4 http://deb.debian.org/debian trixie/main amd64 perl-modules-5.40 all 5.40.1-6 [3019 kB]
+#21 7.617 Get:5 http://deb.debian.org/debian trixie/main amd64 libgdbm-compat4t64 amd64 1.24-2 [50.3 kB]
+#21 7.620 Get:6 http://deb.debian.org/debian trixie/main amd64 libperl5.40 amd64 5.40.1-6 [4341 kB]
+#21 7.661 Get:7 http://deb.debian.org/debian trixie/main amd64 perl amd64 5.40.1-6 [267 kB]
+#21 7.662 Get:8 http://deb.debian.org/debian trixie/main amd64 libbrotli1 amd64 1.1.0-2+b7 [307 kB]
+#21 7.667 Get:9 http://deb.debian.org/debian trixie/main amd64 libkrb5support0 amd64 1.21.3-5 [33.0 kB]
+#21 7.668 Get:10 http://deb.debian.org/debian trixie/main amd64 libcom-err2 amd64 1.47.2-3+b3 [25.0 kB]
+#21 7.670 Get:11 http://deb.debian.org/debian trixie/main amd64 libk5crypto3 amd64 1.21.3-5 [81.5 kB]
+#21 7.672 Get:12 http://deb.debian.org/debian trixie/main amd64 libkeyutils1 amd64 1.6.3-6 [9456 B]
+#21 7.676 Get:13 http://deb.debian.org/debian trixie/main amd64 libkrb5-3 amd64 1.21.3-5 [326 kB]
+#21 7.679 Get:14 http://deb.debian.org/debian trixie/main amd64 libgssapi-krb5-2 amd64 1.21.3-5 [138 kB]
+#21 7.682 Get:15 http://deb.debian.org/debian trixie/main amd64 libunistring5 amd64 1.3-2 [477 kB]
+#21 7.687 Get:16 http://deb.debian.org/debian trixie/main amd64 libidn2-0 amd64 2.3.8-2 [109 kB]
+#21 7.691 Get:17 http://deb.debian.org/debian trixie/main amd64 libsasl2-modules-db amd64 2.1.28+dfsg1-9 [19.8 kB]
+#21 7.691 Get:18 http://deb.debian.org/debian trixie/main amd64 libsasl2-2 amd64 2.1.28+dfsg1-9 [57.5 kB]
+#21 7.697 Get:19 http://deb.debian.org/debian trixie/main amd64 libldap2 amd64 2.6.10+dfsg-1 [194 kB]
+#21 7.699 Get:20 http://deb.debian.org/debian trixie/main amd64 libnghttp2-14 amd64 1.64.0-1.1 [76.0 kB]
+#21 7.705 Get:21 http://deb.debian.org/debian trixie/main amd64 libnghttp3-9 amd64 1.8.0-1 [67.7 kB]
+#21 7.705 Get:22 http://deb.debian.org/debian trixie/main amd64 libpsl5t64 amd64 0.21.2-1.1+b1 [57.2 kB]
+#21 7.709 Get:23 http://deb.debian.org/debian trixie/main amd64 libp11-kit0 amd64 0.25.5-3 [425 kB]
+#21 7.719 Get:24 http://deb.debian.org/debian trixie/main amd64 libtasn1-6 amd64 4.20.0-2 [49.9 kB]
+#21 7.719 Get:25 http://deb.debian.org/debian trixie/main amd64 libgnutls30t64 amd64 3.8.9-3 [1465 kB]
+#21 7.734 Get:26 http://deb.debian.org/debian trixie/main amd64 librtmp1 amd64 2.4+20151223.gitfa8646d.1-2+b5 [58.8 kB]
+#21 7.738 Get:27 http://deb.debian.org/debian trixie/main amd64 libssh2-1t64 amd64 1.11.1-1 [245 kB]
+#21 7.741 Get:28 http://deb.debian.org/debian trixie/main amd64 libcurl4t64 amd64 8.14.1-2+deb13u2 [391 kB]
+#21 7.745 Get:29 http://deb.debian.org/debian trixie/main amd64 curl amd64 8.14.1-2+deb13u2 [270 kB]
+#21 7.748 Get:30 http://deb.debian.org/debian trixie/main amd64 libldap-common all 2.6.10+dfsg-1 [35.1 kB]
+#21 7.749 Get:31 http://deb.debian.org/debian trixie/main amd64 libpq5 amd64 17.6-0+deb13u1 [228 kB]
+#21 7.753 Get:32 http://deb.debian.org/debian trixie/main amd64 libsasl2-modules amd64 2.1.28+dfsg1-9 [66.7 kB]
+#21 7.754 Get:33 http://deb.debian.org/debian trixie/main amd64 postgresql-client-common all 278 [47.1 kB]
+#21 7.758 Get:34 http://deb.debian.org/debian trixie/main amd64 postgresql-client-17 amd64 17.6-0+deb13u1 [2031 kB]
+#21 7.773 Get:35 http://deb.debian.org/debian trixie/main amd64 postgresql-client all 17+278 [14.0 kB]
+#21 7.775 Get:36 http://deb.debian.org/debian trixie/main amd64 publicsuffix all 20250328.1952-0.1 [296 kB]
+#21 8.200 debconf: unable to initialize frontend: Dialog
+#21 8.201 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#21 8.201 debconf: falling back to frontend: Readline
+#21 8.202 debconf: unable to initialize frontend: Readline
+#21 8.202 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/x86_64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 36.)
+#21 8.202 debconf: falling back to frontend: Teletype
+#21 8.216 debconf: unable to initialize frontend: Teletype
+#21 8.217 debconf: (This frontend requires a controlling tty.)
+#21 8.217 debconf: falling back to frontend: Noninteractive
+#21 ...
+
+#19 [nginx frontend-build 4/6] RUN npm ci
+#19 10.43
+#19 10.43 added 94 packages, and audited 95 packages in 9s
+#19 10.43
+#19 10.43 13 packages are looking for funding
+#19 10.43   run `npm fund` for details
+#19 10.46
+#19 10.46 2 moderate severity vulnerabilities
+#19 10.46
+#19 10.46 To address all issues (including breaking changes), run:
+#19 10.46   npm audit fix --force
+#19 10.46
+#19 10.46 Run `npm audit` for details.
+#19 10.47 npm notice
+#19 10.47 npm notice New major version of npm available! 10.8.2 -> 11.7.0
+#19 10.47 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.7.0
+#19 10.47 npm notice To update run: npm install -g npm@11.7.0
+#19 10.47 npm notice
+#19 DONE 10.6s
+
+#22 [frontend build 3/6] COPY package*.json ./
+#22 CACHED
+
+#23 [frontend build 4/6] RUN npm ci
+#23 CACHED
+
+#24 [frontend build 5/6] COPY . .
+#24 ...
+
+#21 [backend 3/8] RUN apt-get update && apt-get install -y     postgresql-client     curl     && rm -rf /var/lib/apt/lists/*
+#21 11.51 Fetched 15.7 MB in 0s (67.1 MB/s)
+#21 11.56 Selecting previously unselected package sensible-utils.
+(Reading database ... 5644 files and directories currently installed.)
+#21 11.59 Preparing to unpack .../00-sensible-utils_0.0.25_all.deb ...
+#21 11.59 Unpacking sensible-utils (0.0.25) ...
+#21 11.64 Selecting previously unselected package bash-completion.
+#21 11.65 Preparing to unpack .../01-bash-completion_1%3a2.16.0-7_all.deb ...
+#21 11.65 Unpacking bash-completion (1:2.16.0-7) ...
+#21 12.19 Selecting previously unselected package krb5-locales.
+#21 12.19 Preparing to unpack .../02-krb5-locales_1.21.3-5_all.deb ...
+#21 12.19 Unpacking krb5-locales (1.21.3-5) ...
+#21 12.25 Selecting previously unselected package perl-modules-5.40.
+#21 12.25 Preparing to unpack .../03-perl-modules-5.40_5.40.1-6_all.deb ...
+#21 12.25 Unpacking perl-modules-5.40 (5.40.1-6) ...
+#21 13.35 Selecting previously unselected package libgdbm-compat4t64:amd64.
+#21 13.35 Preparing to unpack .../04-libgdbm-compat4t64_1.24-2_amd64.deb ...
+#21 13.36 Unpacking libgdbm-compat4t64:amd64 (1.24-2) ...
+#21 13.40 Selecting previously unselected package libperl5.40:amd64.
+#21 13.41 Preparing to unpack .../05-libperl5.40_5.40.1-6_amd64.deb ...
+#21 13.41 Unpacking libperl5.40:amd64 (5.40.1-6) ...
+#21 14.42 Selecting previously unselected package perl.
+#21 14.42 Preparing to unpack .../06-perl_5.40.1-6_amd64.deb ...
+#21 14.42 Unpacking perl (5.40.1-6) ...
+#21 14.53 Selecting previously unselected package libbrotli1:amd64.
+#21 14.53 Preparing to unpack .../07-libbrotli1_1.1.0-2+b7_amd64.deb ...
+#21 14.54 Unpacking libbrotli1:amd64 (1.1.0-2+b7) ...
+#21 14.63 Selecting previously unselected package libkrb5support0:amd64.
+#21 14.63 Preparing to unpack .../08-libkrb5support0_1.21.3-5_amd64.deb ...
+#21 14.63 Unpacking libkrb5support0:amd64 (1.21.3-5) ...
+#21 14.68 Selecting previously unselected package libcom-err2:amd64.
+#21 14.68 Preparing to unpack .../09-libcom-err2_1.47.2-3+b3_amd64.deb ...
+#21 14.69 Unpacking libcom-err2:amd64 (1.47.2-3+b3) ...
+#21 14.74 Selecting previously unselected package libk5crypto3:amd64.
+#21 14.74 Preparing to unpack .../10-libk5crypto3_1.21.3-5_amd64.deb ...
+#21 14.75 Unpacking libk5crypto3:amd64 (1.21.3-5) ...
+#21 14.79 Selecting previously unselected package libkeyutils1:amd64.
+#21 14.80 Preparing to unpack .../11-libkeyutils1_1.6.3-6_amd64.deb ...
+#21 14.80 Unpacking libkeyutils1:amd64 (1.6.3-6) ...
+#21 14.84 Selecting previously unselected package libkrb5-3:amd64.
+#21 14.84 Preparing to unpack .../12-libkrb5-3_1.21.3-5_amd64.deb ...
+#21 14.85 Unpacking libkrb5-3:amd64 (1.21.3-5) ...
+#21 14.96 Selecting previously unselected package libgssapi-krb5-2:amd64.
+#21 14.96 Preparing to unpack .../13-libgssapi-krb5-2_1.21.3-5_amd64.deb ...
+#21 14.97 Unpacking libgssapi-krb5-2:amd64 (1.21.3-5) ...
+#21 15.03 Selecting previously unselected package libunistring5:amd64.
+#21 15.04 Preparing to unpack .../14-libunistring5_1.3-2_amd64.deb ...
+#21 15.04 Unpacking libunistring5:amd64 (1.3-2) ...
+#21 15.18 Selecting previously unselected package libidn2-0:amd64.
+#21 ...
+
+#24 [frontend build 5/6] COPY . .
+#24 DONE 5.3s
+
+#21 [backend 3/8] RUN apt-get update && apt-get install -y     postgresql-client     curl     && rm -rf /var/lib/apt/lists/*
+#21 15.18 Preparing to unpack .../15-libidn2-0_2.3.8-2_amd64.deb ...
+#21 15.18 Unpacking libidn2-0:amd64 (2.3.8-2) ...
+#21 15.29 Selecting previously unselected package libsasl2-modules-db:amd64.
+
+#21 ...
+
+#25 [nginx frontend-build 5/6] COPY frontend/ .
+#25 DONE 5.3s
+
+#21 [backend 3/8] RUN apt-get update && apt-get install -y     postgresql-client     curl     && rm -rf /var/lib/apt/lists/*
+#21 15.30 Preparing to unpack .../16-libsasl2-modules-db_2.1.28+dfsg1-9_amd64.deb ...
+#21 15.30 Unpacking libsasl2-modules-db:amd64 (2.1.28+dfsg1-9) ...
+#21 15.36 Selecting previously unselected package libsasl2-2:amd64.
+#21 15.37 Preparing to unpack .../17-libsasl2-2_2.1.28+dfsg1-9_amd64.deb ...
+#21 15.37 Unpacking libsasl2-2:amd64 (2.1.28+dfsg1-9) ...
+#21 15.44 Selecting previously unselected package libldap2:amd64.
+#21 15.44 Preparing to unpack .../18-libldap2_2.6.10+dfsg-1_amd64.deb ...
+#21 15.44 Unpacking libldap2:amd64 (2.6.10+dfsg-1) ...
+#21 15.55 Selecting previously unselected package libnghttp2-14:amd64.
+#21 15.56 Preparing to unpack .../19-libnghttp2-14_1.64.0-1.1_amd64.deb ...
+#21 15.56 Unpacking libnghttp2-14:amd64 (1.64.0-1.1) ...
+#21 15.64 Selecting previously unselected package libnghttp3-9:amd64.
+#21 15.65 Preparing to unpack .../20-libnghttp3-9_1.8.0-1_amd64.deb ...
+#21 15.65 Unpacking libnghttp3-9:amd64 (1.8.0-1) ...
+#21 15.75 Selecting previously unselected package libpsl5t64:amd64.
+#21 15.75 Preparing to unpack .../21-libpsl5t64_0.21.2-1.1+b1_amd64.deb ...
+#21 15.76 Unpacking libpsl5t64:amd64 (0.21.2-1.1+b1) ...
+#21 15.80 Selecting previously unselected package libp11-kit0:amd64.
+#21 15.81 Preparing to unpack .../22-libp11-kit0_0.25.5-3_amd64.deb ...
+#21 15.81 Unpacking libp11-kit0:amd64 (0.25.5-3) ...
+#21 15.90 Selecting previously unselected package libtasn1-6:amd64.
+#21 15.90 Preparing to unpack .../23-libtasn1-6_4.20.0-2_amd64.deb ...
+#21 15.90 Unpacking libtasn1-6:amd64 (4.20.0-2) ...
+#21 15.94 Selecting previously unselected package libgnutls30t64:amd64.
+#21 15.94 Preparing to unpack .../24-libgnutls30t64_3.8.9-3_amd64.deb ...
+#21 15.95 Unpacking libgnutls30t64:amd64 (3.8.9-3) ...
+#21 16.15 Selecting previously unselected package librtmp1:amd64.
+#21 16.15 Preparing to unpack .../25-librtmp1_2.4+20151223.gitfa8646d.1-2+b5_amd64.deb ...
+#21 16.15 Unpacking librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2+b5) ...
+#21 16.21 Selecting previously unselected package libssh2-1t64:amd64.
+#21 16.21 Preparing to unpack .../26-libssh2-1t64_1.11.1-1_amd64.deb ...
+#21 16.22 Unpacking libssh2-1t64:amd64 (1.11.1-1) ...
+#21 16.29 Selecting previously unselected package libcurl4t64:amd64.
+#21 16.30 Preparing to unpack .../27-libcurl4t64_8.14.1-2+deb13u2_amd64.deb ...
+#21 16.30 Unpacking libcurl4t64:amd64 (8.14.1-2+deb13u2) ...
+#21 16.43 Selecting previously unselected package curl.
+#21 16.43 Preparing to unpack .../28-curl_8.14.1-2+deb13u2_amd64.deb ...
+#21 16.44 Unpacking curl (8.14.1-2+deb13u2) ...
+#21 16.53 Selecting previously unselected package libldap-common.
+#21 16.53 Preparing to unpack .../29-libldap-common_2.6.10+dfsg-1_all.deb ...
+#21 16.54 Unpacking libldap-common (2.6.10+dfsg-1) ...
+#21 16.60 Selecting previously unselected package libpq5:amd64.
+#21 16.61 Preparing to unpack .../30-libpq5_17.6-0+deb13u1_amd64.deb ...
+#21 16.62 Unpacking libpq5:amd64 (17.6-0+deb13u1) ...
+#21 16.72 Selecting previously unselected package libsasl2-modules:amd64.
+#21 16.72 Preparing to unpack .../31-libsasl2-modules_2.1.28+dfsg1-9_amd64.deb ...
+#21 16.75 Unpacking libsasl2-modules:amd64 (2.1.28+dfsg1-9) ...
+#21 16.82 Selecting previously unselected package postgresql-client-common.
+#21 16.83 Preparing to unpack .../32-postgresql-client-common_278_all.deb ...
+#21 16.84 Unpacking postgresql-client-common (278) ...
+#21 16.93 Selecting previously unselected package postgresql-client-17.
+#21 16.93 Preparing to unpack .../33-postgresql-client-17_17.6-0+deb13u1_amd64.deb ...
+#21 16.94 Unpacking postgresql-client-17 (17.6-0+deb13u1) ...
+#21 17.52 Selecting previously unselected package postgresql-client.
+#21 17.53 Preparing to unpack .../34-postgresql-client_17+278_all.deb ...
+#21 17.53 Unpacking postgresql-client (17+278) ...
+#21 17.59 Selecting previously unselected package publicsuffix.
+#21 17.59 Preparing to unpack .../35-publicsuffix_20250328.1952-0.1_all.deb ...
+#21 17.59 Unpacking publicsuffix (20250328.1952-0.1) ...
+#21 17.71 Setting up libkeyutils1:amd64 (1.6.3-6) ...
+#21 17.72 Setting up libgdbm-compat4t64:amd64 (1.24-2) ...
+#21 17.73 Setting up libbrotli1:amd64 (1.1.0-2+b7) ...
+#21 17.73 Setting up libsasl2-modules:amd64 (2.1.28+dfsg1-9) ...
+#21 17.76 Setting up libnghttp2-14:amd64 (1.64.0-1.1) ...
+#21 17.77 Setting up krb5-locales (1.21.3-5) ...
+#21 17.77 Setting up libcom-err2:amd64 (1.47.2-3+b3) ...
+#21 17.78 Setting up libldap-common (2.6.10+dfsg-1) ...
+#21 17.79 Setting up libkrb5support0:amd64 (1.21.3-5) ...
+#21 17.80 Setting up libsasl2-modules-db:amd64 (2.1.28+dfsg1-9) ...
+#21 17.81 Setting up bash-completion (1:2.16.0-7) ...
+#21 17.82 Setting up libp11-kit0:amd64 (0.25.5-3) ...
+#21 17.83 Setting up libunistring5:amd64 (1.3-2) ...
+#21 17.84 Setting up libk5crypto3:amd64 (1.21.3-5) ...
+#21 17.85 Setting up libsasl2-2:amd64 (2.1.28+dfsg1-9) ...
+#21 17.86 Setting up libnghttp3-9:amd64 (1.8.0-1) ...
+#21 17.86 Setting up perl-modules-5.40 (5.40.1-6) ...
+#21 17.87 Setting up sensible-utils (0.0.25) ...
+#21 17.88 Setting up libtasn1-6:amd64 (4.20.0-2) ...
+#21 17.89 Setting up libkrb5-3:amd64 (1.21.3-5) ...
+#21 17.90 Setting up libssh2-1t64:amd64 (1.11.1-1) ...
+#21 17.90 Setting up publicsuffix (20250328.1952-0.1) ...
+#21 17.91 Setting up libldap2:amd64 (2.6.10+dfsg-1) ...
+#21 17.92 Setting up libidn2-0:amd64 (2.3.8-2) ...
+#21 17.93 Setting up libperl5.40:amd64 (5.40.1-6) ...
+#21 17.94 Setting up perl (5.40.1-6) ...
+#21 17.96 Setting up libgssapi-krb5-2:amd64 (1.21.3-5) ...
+#21 17.97 Setting up libgnutls30t64:amd64 (3.8.9-3) ...
+#21 17.98 Setting up postgresql-client-common (278) ...
+#21 18.01 Setting up libpsl5t64:amd64 (0.21.2-1.1+b1) ...
+#21 18.02 Setting up libpq5:amd64 (17.6-0+deb13u1) ...
+#21 18.02 Setting up librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2+b5) ...
+#21 18.03 Setting up libcurl4t64:amd64 (8.14.1-2+deb13u2) ...
+#21 18.04 Setting up postgresql-client-17 (17.6-0+deb13u1) ...
+#21 19.58 update-alternatives: using /usr/share/postgresql/17/man/man1/psql.1.gz to provide /usr/share/man/man1/psql.1.gz (psql.1.gz) in auto mode
+#21 19.73 Setting up curl (8.14.1-2+deb13u2) ...
+#21 19.73 Setting up postgresql-client (17+278) ...
+#21 19.74 Processing triggers for libc-bin (2.41-12) ...
+#21 DONE 20.1s
+
+#26 [nginx frontend-build 6/6] RUN npm run build
+#26 1.553
+#26 1.553 > accredify-frontend@1.0.0 build
+#26 1.553 > tsc && vite build
+#26 1.553
+#26 ...
+
+#27 [backend 4/8] COPY requirements.txt /app/
+#27 DONE 0.3s
+
+#28 [frontend build 6/6] RUN npm run build
+#28 1.574
+#28 1.574 > accredify-frontend@1.0.0 build
+#28 1.574 > tsc && vite build
+#28 1.574
+#28 ...
+
+#29 [backend 5/8] RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
+#29 6.117 Collecting Django<6.0,>=5.0 (from -r requirements.txt (line 1))
+#29 6.168   Downloading django-5.2.9-py3-none-any.whl.metadata (4.1 kB)
+#29 6.295 Collecting djangorestframework<4.0,>=3.14 (from -r requirements.txt (line 2))
+#29 6.304   Downloading djangorestframework-3.16.1-py3-none-any.whl.metadata (11 kB)
+#29 6.387 Collecting djangorestframework-simplejwt<6.0,>=5.3 (from -r requirements.txt (line 3))
+#29 6.395   Downloading djangorestframework_simplejwt-5.5.1-py3-none-any.whl.metadata (4.6 kB)
+#29 6.754 Collecting drf-spectacular<1.0,>=0.27 (from -r requirements.txt (line 4))
+#29 6.763   Downloading drf_spectacular-0.29.0-py3-none-any.whl.metadata (14 kB)
+#29 7.125 Collecting psycopg2-binary<3.0,>=2.9 (from -r requirements.txt (line 5))
+#29 7.135   Downloading psycopg2_binary-2.9.11-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (4.9 kB)
+#29 7.223 Collecting python-dotenv<2.0,>=1.0 (from -r requirements.txt (line 6))
+#29 7.233   Downloading python_dotenv-1.2.1-py3-none-any.whl.metadata (25 kB)
+#29 7.342 Collecting gunicorn<22.0,>=21.0 (from -r requirements.txt (line 7))
+#29 7.352   Downloading gunicorn-21.2.0-py3-none-any.whl.metadata (4.1 kB)
+#29 8.244 Collecting Pillow<11.0,>=10.0 (from -r requirements.txt (line 8))
+#29 8.252   Downloading pillow-10.4.0-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (9.2 kB)
+#29 8.353 Collecting django-cors-headers<5.0,>=4.3 (from -r requirements.txt (line 9))
+#29 8.361   Downloading django_cors_headers-4.9.0-py3-none-any.whl.metadata (16 kB)
+#29 8.418 Collecting google-generativeai<1.0,>=0.3 (from -r requirements.txt (line 10))
+#29 8.428   Downloading google_generativeai-0.8.6-py3-none-any.whl.metadata (3.9 kB)
+#29 8.494 Collecting python-dateutil<3.0,>=2.8 (from -r requirements.txt (line 11))
+#29 8.501   Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+#29 8.793 Collecting google-auth>=2.23.0 (from -r requirements.txt (line 12))
+#29 8.800   Downloading google_auth-2.45.0-py2.py3-none-any.whl.metadata (6.8 kB)
+#29 8.861 Collecting google-auth-oauthlib>=1.1.0 (from -r requirements.txt (line 13))
+#29 8.869   Downloading google_auth_oauthlib-1.2.3-py3-none-any.whl.metadata (3.1 kB)
+#29 8.908 Collecting google-auth-httplib2>=0.1.1 (from -r requirements.txt (line 14))
+#29 8.915   Downloading google_auth_httplib2-0.3.0-py3-none-any.whl.metadata (3.1 kB)
+#29 9.227 Collecting google-api-python-client>=2.100.0 (from -r requirements.txt (line 15))
+#29 9.235   Downloading google_api_python_client-2.187.0-py3-none-any.whl.metadata (7.0 kB)
+#29 9.770 Collecting reportlab>=4.0.0 (from -r requirements.txt (line 16))
+#29 9.777   Downloading reportlab-4.4.6-py3-none-any.whl.metadata (1.7 kB)
+#29 9.874 Collecting asgiref>=3.8.1 (from Django<6.0,>=5.0->-r requirements.txt (line 1))
+#29 9.880   Downloading asgiref-3.11.0-py3-none-any.whl.metadata (9.3 kB)
+#29 9.939 Collecting sqlparse>=0.3.1 (from Django<6.0,>=5.0->-r requirements.txt (line 1))
+#29 9.947   Downloading sqlparse-0.5.5-py3-none-any.whl.metadata (4.7 kB)
+#29 10.18 Collecting pyjwt>=1.7.1 (from djangorestframework-simplejwt<6.0,>=5.3->-r requirements.txt (line 3))
+#29 10.18   Downloading PyJWT-2.10.1-py3-none-any.whl.metadata (4.0 kB)
+#29 10.37 Collecting uritemplate>=2.0.0 (from drf-spectacular<1.0,>=0.27->-r requirements.txt (line 4))
+#29 10.38   Downloading uritemplate-4.2.0-py3-none-any.whl.metadata (2.6 kB)
+#29 10.55 Collecting PyYAML>=5.1 (from drf-spectacular<1.0,>=0.27->-r requirements.txt (line 4))
+#29 10.55   Downloading pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+#29 10.70 Collecting jsonschema>=2.6.0 (from drf-spectacular<1.0,>=0.27->-r requirements.txt (line 4))
+#29 10.70   Downloading jsonschema-4.25.1-py3-none-any.whl.metadata (7.6 kB)
+#29 10.75 Collecting inflection>=0.3.1 (from drf-spectacular<1.0,>=0.27->-r requirements.txt (line 4))
+#29 10.75   Downloading inflection-0.5.1-py2.py3-none-any.whl.metadata (1.7 kB)
+#29 11.01 Collecting packaging (from gunicorn<22.0,>=21.0->-r requirements.txt (line 7))
+#29 11.02   Downloading packaging-25.0-py3-none-any.whl.metadata (3.3 kB)
+#29 11.19 Collecting google-ai-generativelanguage==0.6.15 (from google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 11.20   Downloading google_ai_generativelanguage-0.6.15-py3-none-any.whl.metadata (5.7 kB)
+#29 11.43 Collecting google-api-core (from google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 11.44   Downloading google_api_core-2.28.1-py3-none-any.whl.metadata (3.3 kB)
+#29 12.18 Collecting protobuf (from google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 12.19   Downloading protobuf-6.33.2-cp39-abi3-manylinux2014_x86_64.whl.metadata (593 bytes)
+#29 12.78 Collecting pydantic (from google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 12.79   Downloading pydantic-2.12.5-py3-none-any.whl.metadata (90 kB)
+#29 12.80      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 90.6/90.6 kB 216.7 MB/s eta 0:00:00
+#29 13.02 Collecting tqdm (from google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 13.03   Downloading tqdm-4.67.1-py3-none-any.whl.metadata (57 kB)
+#29 13.04      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 57.7/57.7 kB 248.8 MB/s eta 0:00:00
+#29 13.14 Collecting typing-extensions (from google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 13.15   Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+#29 13.72 Collecting proto-plus<2.0.0dev,>=1.22.3 (from google-ai-generativelanguage==0.6.15->google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 13.73   Downloading proto_plus-1.27.0-py3-none-any.whl.metadata (2.2 kB)
+#29 13.89 Collecting protobuf (from google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 13.90   Downloading protobuf-5.29.5-cp38-abi3-manylinux2014_x86_64.whl.metadata (592 bytes)
+#29 13.97 Collecting six>=1.5 (from python-dateutil<3.0,>=2.8->-r requirements.txt (line 11))
+#29 13.98   Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+#29 14.17 Collecting cachetools<7.0,>=2.0.0 (from google-auth>=2.23.0->-r requirements.txt (line 12))
+#29 14.18   Downloading cachetools-6.2.4-py3-none-any.whl.metadata (5.6 kB)
+#29 14.26 Collecting pyasn1-modules>=0.2.1 (from google-auth>=2.23.0->-r requirements.txt (line 12))
+#29 14.27   Downloading pyasn1_modules-0.4.2-py3-none-any.whl.metadata (3.5 kB)
+#29 14.34 Collecting rsa<5,>=3.1.4 (from google-auth>=2.23.0->-r requirements.txt (line 12))
+#29 14.35   Downloading rsa-4.9.1-py3-none-any.whl.metadata (5.6 kB)
+#29 14.48 Collecting google-auth>=2.23.0 (from -r requirements.txt (line 12))
+#29 14.49   Downloading google_auth-2.41.1-py2.py3-none-any.whl.metadata (6.6 kB)
+#29 14.55 Collecting requests-oauthlib>=0.7.0 (from google-auth-oauthlib>=1.1.0->-r requirements.txt (line 13))
+#29 14.55   Downloading requests_oauthlib-2.0.0-py2.py3-none-any.whl.metadata (11 kB)
+#29 14.84 Collecting httplib2<1.0.0,>=0.19.0 (from google-auth-httplib2>=0.1.1->-r requirements.txt (line 14))
+#29 14.84   Downloading httplib2-0.31.0-py3-none-any.whl.metadata (2.2 kB)
+#29 15.46 Collecting charset-normalizer (from reportlab>=4.0.0->-r requirements.txt (line 16))
+#29 15.47   Downloading charset_normalizer-3.4.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (37 kB)
+#29 15.67 Collecting googleapis-common-protos<2.0.0,>=1.56.2 (from google-api-core->google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 15.68   Downloading googleapis_common_protos-1.72.0-py3-none-any.whl.metadata (9.4 kB)
+#29 16.02 Collecting requests<3.0.0,>=2.18.0 (from google-api-core->google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 16.03   Downloading requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+#29 16.19 Collecting pyparsing<4,>=3.0.4 (from httplib2<1.0.0,>=0.19.0->google-auth-httplib2>=0.1.1->-r requirements.txt (line 14))
+#29 16.20   Downloading pyparsing-3.2.5-py3-none-any.whl.metadata (5.0 kB)
+#29 16.36 Collecting attrs>=22.2.0 (from jsonschema>=2.6.0->drf-spectacular<1.0,>=0.27->-r requirements.txt (line 4))
+#29 16.37   Downloading attrs-25.4.0-py3-none-any.whl.metadata (10 kB)
+#29 16.43 Collecting jsonschema-specifications>=2023.03.6 (from jsonschema>=2.6.0->drf-spectacular<1.0,>=0.27->-r requirements.txt (line 4))
+#29 16.44   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+#29 16.58 Collecting referencing>=0.28.4 (from jsonschema>=2.6.0->drf-spectacular<1.0,>=0.27->-r requirements.txt (line 4))
+#29 16.59   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+#29 ...
+
+#28 [frontend build 6/6] RUN npm run build
+#28 21.94 vite v5.4.21 building for production...
+#28 22.25 transforming...
+#28 ...
+
+#29 [backend 5/8] RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
+#29 18.03 Collecting rpds-py>=0.7.1 (from jsonschema>=2.6.0->drf-spectacular<1.0,>=0.27->-r requirements.txt (line 4))
+#29 18.03   Downloading rpds_py-0.30.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+#29 18.16 Collecting pyasn1<0.7.0,>=0.6.1 (from pyasn1-modules>=0.2.1->google-auth>=2.23.0->-r requirements.txt (line 12))
+#29 18.17   Downloading pyasn1-0.6.1-py3-none-any.whl.metadata (8.4 kB)
+#29 18.33 Collecting oauthlib>=3.0.0 (from requests-oauthlib>=0.7.0->google-auth-oauthlib>=1.1.0->-r requirements.txt (line 13))
+#29 18.34   Downloading oauthlib-3.3.1-py3-none-any.whl.metadata (7.9 kB)
+#29 18.69 Collecting annotated-types>=0.6.0 (from pydantic->google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 18.69   Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+#29 21.82 Collecting pydantic-core==2.41.5 (from pydantic->google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 21.83   Downloading pydantic_core-2.41.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.3 kB)
+#29 21.88 Collecting typing-inspection>=0.4.2 (from pydantic->google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 21.89   Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+#29 24.58 Collecting grpcio<2.0.0,>=1.33.2 (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 24.59   Downloading grpcio-1.76.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (3.7 kB)
+#29 24.84 Collecting grpcio-status<2.0.0,>=1.33.2 (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 24.85   Downloading grpcio_status-1.76.0-py3-none-any.whl.metadata (1.1 kB)
+#29 ...
+
+#28 [frontend build 6/6] RUN npm run build
+#28 30.62 ✓ 99 modules transformed.
+#28 32.00 rendering chunks...
+#28 ...
+
+#26 [nginx frontend-build 6/6] RUN npm run build
+#26 21.96 vite v5.4.21 building for production...
+#26 22.27 transforming...
+#26 30.92 ✓ 99 modules transformed.
+#26 31.98 rendering chunks...
+#26 32.01 computing gzip size...
+#26 32.05 dist/index.html                   0.42 kB │ gzip:  0.29 kB
+#26 32.05 dist/assets/index-BYHikfqQ.css    0.41 kB │ gzip:  0.28 kB
+#26 32.05 dist/assets/index-DD0YZTyt.js   236.74 kB │ gzip: 76.16 kB
+#26 32.05 ✓ built in 9.95s
+#26 ...
+
+#28 [frontend build 6/6] RUN npm run build
+#28 32.03 computing gzip size...
+#28 32.07 dist/index.html                   0.42 kB │ gzip:  0.29 kB
+#28 32.07 dist/assets/index-BYHikfqQ.css    0.41 kB │ gzip:  0.28 kB
+#28 32.08 dist/assets/index-DD0YZTyt.js   236.74 kB │ gzip: 76.16 kB
+#28 32.08 ✓ built in 10.01s
+#28 DONE 32.3s
+
+#26 [nginx frontend-build 6/6] RUN npm run build
+#26 DONE 32.3s
+
+#29 [backend 5/8] RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
+#29 25.58 Collecting idna<4,>=2.5 (from requests<3.0.0,>=2.18.0->google-api-core->google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 25.59   Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+#29 25.76 Collecting urllib3<3,>=1.21.1 (from requests<3.0.0,>=2.18.0->google-api-core->google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 25.77   Downloading urllib3-2.6.2-py3-none-any.whl.metadata (6.6 kB)
+#29 25.86 Collecting certifi>=2017.4.17 (from requests<3.0.0,>=2.18.0->google-api-core->google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 25.87   Downloading certifi-2025.11.12-py3-none-any.whl.metadata (2.5 kB)
+#29 26.19 INFO: pip is looking at multiple versions of grpcio-status to determine which version is compatible with other requirements. This could take a while.
+#29 26.22 Collecting grpcio-status<2.0.0,>=1.33.2 (from google-api-core[grpc]!=2.0.*,!=2.1.*,!=2.10.*,!=2.2.*,!=2.3.*,!=2.4.*,!=2.5.*,!=2.6.*,!=2.7.*,!=2.8.*,!=2.9.*,<3.0.0dev,>=1.34.1->google-ai-generativelanguage==0.6.15->google-generativeai<1.0,>=0.3->-r requirements.txt (line 10))
+#29 26.22   Downloading grpcio_status-1.75.1-py3-none-any.whl.metadata (1.1 kB)
+#29 26.26   Downloading grpcio_status-1.75.0-py3-none-any.whl.metadata (1.1 kB)
+#29 26.30   Downloading grpcio_status-1.74.0-py3-none-any.whl.metadata (1.1 kB)
+#29 26.35   Downloading grpcio_status-1.73.1-py3-none-any.whl.metadata (1.1 kB)
+#29 26.45   Downloading grpcio_status-1.73.0-py3-none-any.whl.metadata (1.1 kB)
+#29 26.49   Downloading grpcio_status-1.72.2-py3-none-any.whl.metadata (1.1 kB)
+#29 26.54   Downloading grpcio_status-1.72.1-py3-none-any.whl.metadata (1.1 kB)
+#29 26.55 INFO: pip is still looking at multiple versions of grpcio-status to determine which version is compatible with other requirements. This could take a while.
+#29 26.58   Downloading grpcio_status-1.71.2-py3-none-any.whl.metadata (1.1 kB)
+#29 26.99 Downloading django-5.2.9-py3-none-any.whl (8.3 MB)
+#29 27.12    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.3/8.3 MB 67.8 MB/s eta 0:00:00
+#29 27.13 Downloading djangorestframework-3.16.1-py3-none-any.whl (1.1 MB)
+#29 27.14    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 130.6 MB/s eta 0:00:00
+#29 27.15 Downloading djangorestframework_simplejwt-5.5.1-py3-none-any.whl (107 kB)
+#29 27.16    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 107.7/107.7 kB 79.0 MB/s eta 0:00:00
+#29 27.17 Downloading drf_spectacular-0.29.0-py3-none-any.whl (105 kB)
+#29 27.18    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 105.4/105.4 kB 93.9 MB/s eta 0:00:00
+#29 27.18 Downloading psycopg2_binary-2.9.11-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (4.2 MB)
+#29 27.23    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.2/4.2 MB 112.1 MB/s eta 0:00:00
+#29 27.23 Downloading python_dotenv-1.2.1-py3-none-any.whl (21 kB)
+#29 27.23 Downloading gunicorn-21.2.0-py3-none-any.whl (80 kB)
+#29 27.24    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 80.2/80.2 kB 14.1 MB/s eta 0:00:00
+#29 27.27 Downloading pillow-10.4.0-cp311-cp311-manylinux_2_28_x86_64.whl (4.5 MB)
+#29 27.33    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 84.5 MB/s eta 0:00:00
+#29 27.34 Downloading django_cors_headers-4.9.0-py3-none-any.whl (12 kB)
+#29 27.34 Downloading google_generativeai-0.8.6-py3-none-any.whl (155 kB)
+#29 27.35    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 155.1/155.1 kB 267.7 MB/s eta 0:00:00
+#29 27.36 Downloading google_ai_generativelanguage-0.6.15-py3-none-any.whl (1.3 MB)
+#29 27.37    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 117.0 MB/s eta 0:00:00
+#29 27.39 Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+#29 27.39    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 229.9/229.9 kB 75.2 MB/s eta 0:00:00
+#29 27.40 Downloading google_auth_oauthlib-1.2.3-py3-none-any.whl (19 kB)
+#29 27.41 Downloading google_auth-2.41.1-py2.py3-none-any.whl (221 kB)
+#29 27.44    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 221.3/221.3 kB 306.5 MB/s eta 0:00:00
+#29 27.44 Downloading google_auth_httplib2-0.3.0-py3-none-any.whl (9.5 kB)
+#29 27.44 Downloading google_api_python_client-2.187.0-py3-none-any.whl (14.6 MB)
+#29 27.60    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 14.6/14.6 MB 101.6 MB/s eta 0:00:00
+#29 27.61 Downloading reportlab-4.4.6-py3-none-any.whl (2.0 MB)
+#29 27.62    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 138.2 MB/s eta 0:00:00
+#29 27.63 Downloading asgiref-3.11.0-py3-none-any.whl (24 kB)
+#29 27.63 Downloading cachetools-6.2.4-py3-none-any.whl (11 kB)
+#29 27.64 Downloading google_api_core-2.28.1-py3-none-any.whl (173 kB)
+#29 27.64    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 173.7/173.7 kB 270.0 MB/s eta 0:00:00
+#29 27.65 Downloading httplib2-0.31.0-py3-none-any.whl (91 kB)
+#29 27.65    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 91.1/91.1 kB 252.1 MB/s eta 0:00:00
+#29 27.67 Downloading inflection-0.5.1-py2.py3-none-any.whl (9.5 kB)
+#29 27.67 Downloading jsonschema-4.25.1-py3-none-any.whl (90 kB)
+#29 27.67    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 90.0/90.0 kB 151.9 MB/s eta 0:00:00
+#29 27.67 Downloading protobuf-5.29.5-cp38-abi3-manylinux2014_x86_64.whl (319 kB)
+#29 27.67    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 319.9/319.9 kB 149.9 MB/s eta 0:00:00
+#29 27.67 Downloading pyasn1_modules-0.4.2-py3-none-any.whl (181 kB)
+#29 27.69    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 181.3/181.3 kB 94.1 MB/s eta 0:00:00
+#29 27.69 Downloading PyJWT-2.10.1-py3-none-any.whl (22 kB)
+#29 27.69 Downloading pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (806 kB)
+#29 27.71    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 806.6/806.6 kB 132.9 MB/s eta 0:00:00
+#29 27.71 Downloading requests_oauthlib-2.0.0-py2.py3-none-any.whl (24 kB)
+#29 27.71 Downloading rsa-4.9.1-py3-none-any.whl (34 kB)
+#29 27.71 Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+#29 27.73 Downloading sqlparse-0.5.5-py3-none-any.whl (46 kB)
+#29 27.73    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 46.1/46.1 kB 247.1 MB/s eta 0:00:00
+#29 27.73 Downloading uritemplate-4.2.0-py3-none-any.whl (11 kB)
+#29 27.73 Downloading charset_normalizer-3.4.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (151 kB)
+#29 27.74    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 151.6/151.6 kB 295.3 MB/s eta 0:00:00
+#29 27.74 Downloading packaging-25.0-py3-none-any.whl (66 kB)
+#29 27.74    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 66.5/66.5 kB 114.3 MB/s eta 0:00:00
+#29 27.75 Downloading pydantic-2.12.5-py3-none-any.whl (463 kB)
+#29 27.76    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 463.6/463.6 kB 186.2 MB/s eta 0:00:00
+#29 27.77 Downloading pydantic_core-2.41.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+#29 27.79    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 126.0 MB/s eta 0:00:00
+#29 27.79 Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+#29 27.79    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 44.6/44.6 kB 81.4 MB/s eta 0:00:00
+#29 27.80 Downloading tqdm-4.67.1-py3-none-any.whl (78 kB)
+#29 27.80    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 78.5/78.5 kB 131.3 MB/s eta 0:00:00
+#29 27.81 Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+#29 27.81 Downloading attrs-25.4.0-py3-none-any.whl (67 kB)
+#29 27.82    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 67.6/67.6 kB 196.2 MB/s eta 0:00:00
+#29 27.82 Downloading googleapis_common_protos-1.72.0-py3-none-any.whl (297 kB)
+#29 27.82    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 297.5/297.5 kB 141.0 MB/s eta 0:00:00
+#29 27.83 Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+#29 27.83 Downloading oauthlib-3.3.1-py3-none-any.whl (160 kB)
+#29 27.84    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 160.1/160.1 kB 299.6 MB/s eta 0:00:00
+#29 27.84 Downloading proto_plus-1.27.0-py3-none-any.whl (50 kB)
+#29 27.85    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 50.2/50.2 kB 229.3 MB/s eta 0:00:00
+#29 27.85 Downloading pyasn1-0.6.1-py3-none-any.whl (83 kB)
+#29 27.86    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 83.1/83.1 kB 270.3 MB/s eta 0:00:00
+#29 27.87 Downloading pyparsing-3.2.5-py3-none-any.whl (113 kB)
+#29 27.87    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 113.9/113.9 kB 282.0 MB/s eta 0:00:00
+#29 27.87 Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+#29 27.88 Downloading requests-2.32.5-py3-none-any.whl (64 kB)
+#29 27.88    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 64.7/64.7 kB 114.5 MB/s eta 0:00:00
+#29 27.88 Downloading rpds_py-0.30.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (390 kB)
+#29 27.89    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 390.8/390.8 kB 120.5 MB/s eta 0:00:00
+#29 27.89 Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+#29 27.90 Downloading certifi-2025.11.12-py3-none-any.whl (159 kB)
+#29 27.90    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 159.4/159.4 kB 126.7 MB/s eta 0:00:00
+#29 27.91 Downloading grpcio-1.76.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (6.6 MB)
+#29 27.97    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.6/6.6 MB 127.9 MB/s eta 0:00:00
+#29 27.97 Downloading grpcio_status-1.71.2-py3-none-any.whl (14 kB)
+#29 27.97 Downloading idna-3.11-py3-none-any.whl (71 kB)
+#29 ...
+
+#30 [frontend stage-1 2/2] COPY --from=build /app/dist /usr/share/nginx/html
+#30 DONE 0.1s
+
+#31 [nginx stage-1 2/3] COPY --from=frontend-build /app/dist /usr/share/nginx/html
+#31 CACHED
+
+#29 [backend 5/8] RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
+#29 28.01    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 71.0/71.0 kB 75.3 MB/s eta 0:00:00
+#29 28.01 Downloading urllib3-2.6.2-py3-none-any.whl (131 kB)
+#29 28.01    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 131.2/131.2 kB 84.9 MB/s eta 0:00:00
+#29 ...
+
+#32 [nginx stage-1 3/3] COPY nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
+#32 DONE 0.1s
+
+#33 [nginx] exporting to image
+#33 exporting layers 0.2s done
+#33 exporting manifest sha256:864ee26e79d3e262bc23c7437da2c0c5aeebdb0ff56db9f525405280f55dbe68 0.0s done
+#33 exporting config sha256:c0b0932bed9e3e11a583cc0b28530b617ff45784b2f05d35ad4e27ae0f9d5dd5 0.0s done
+#33 exporting attestation manifest sha256:0888ed9b8dd0d7e1689060935f965d1acc1c624959b5f7854500b187efd75c47 0.0s done
+#33 exporting manifest list sha256:dfed351787ab8c9481bd81bd752559dadd7f155c9765dd15c432e79d3abf686a 0.0s done
+#33 naming to docker.io/library/accreditrack-nginx:latest done
+#33 unpacking to docker.io/library/accreditrack-nginx:latest
+#33 unpacking to docker.io/library/accreditrack-nginx:latest 0.2s done
+#33 DONE 0.5s
+
+#34 [frontend] exporting to image
+#34 exporting layers 0.2s done
+#34 exporting manifest sha256:0e06adc9a3a1f40d059447c6dd3bcbe8b877d5b4adcf1cdc52ca34d99f672961 0.0s done
+#34 exporting config sha256:6deb5cb827f703e539bb9944e91b81e2da31db650deb0587baf7bede9838f0d5 0.0s done
+#34 exporting attestation manifest sha256:f5399baca8635d8ea5d4e0fb9913cc1ef914b6ef1e792c1c2ee862d4f828e3cf 0.0s done
+#34 exporting manifest list sha256:19d523bfe32541d28d8b022b09f5c4373b0b79dfa85cce96d443a1d33d5f5828 0.0s done
+#34 naming to docker.io/library/accreditrack-frontend:latest done
+#34 unpacking to docker.io/library/accreditrack-frontend:latest 0.2s done
+#34 DONE 0.6s
+
+#29 [backend 5/8] RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
+#29 ...
+
+#35 [nginx] resolving provenance for metadata file
+#35 DONE 0.1s
+
+#36 [frontend] resolving provenance for metadata file
+#36 DONE 0.1s
+
+#29 [backend 5/8] RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
+#29 29.11 Installing collected packages: urllib3, uritemplate, typing-extensions, tqdm, sqlparse, six, rpds-py, PyYAML, python-dotenv, pyparsing, pyjwt, pyasn1, psycopg2-binary, protobuf, Pillow, packaging, oauthlib, inflection, idna, charset-normalizer, certifi, cachetools, attrs, asgiref, annotated-types, typing-inspection, rsa, requests, reportlab, referencing, python-dateutil, pydantic-core, pyasn1-modules, proto-plus, httplib2, gunicorn, grpcio, googleapis-common-protos, Django, requests-oauthlib, pydantic, jsonschema-specifications, grpcio-status, google-auth, djangorestframework, django-cors-headers, jsonschema, google-auth-oauthlib, google-auth-httplib2, google-api-core, djangorestframework-simplejwt, google-api-python-client, drf-spectacular, google-ai-generativelanguage, google-generativeai
+#29 37.02 Successfully installed Django-5.2.9 Pillow-10.4.0 PyYAML-6.0.3 annotated-types-0.7.0 asgiref-3.11.0 attrs-25.4.0 cachetools-6.2.4 certifi-2025.11.12 charset-normalizer-3.4.4 django-cors-headers-4.9.0 djangorestframework-3.16.1 djangorestframework-simplejwt-5.5.1 drf-spectacular-0.29.0 google-ai-generativelanguage-0.6.15 google-api-core-2.28.1 google-api-python-client-2.187.0 google-auth-2.41.1 google-auth-httplib2-0.3.0 google-auth-oauthlib-1.2.3 google-generativeai-0.8.6 googleapis-common-protos-1.72.0 grpcio-1.76.0 grpcio-status-1.71.2 gunicorn-21.2.0 httplib2-0.31.0 idna-3.11 inflection-0.5.1 jsonschema-4.25.1 jsonschema-specifications-2025.9.1 oauthlib-3.3.1 packaging-25.0 proto-plus-1.27.0 protobuf-5.29.5 psycopg2-binary-2.9.11 pyasn1-0.6.1 pyasn1-modules-0.4.2 pydantic-2.12.5 pydantic-core-2.41.5 pyjwt-2.10.1 pyparsing-3.2.5 python-dateutil-2.9.0.post0 python-dotenv-1.2.1 referencing-0.37.0 reportlab-4.4.6 requests-2.32.5 requests-oauthlib-2.0.0 rpds-py-0.30.0 rsa-4.9.1 six-1.17.0 sqlparse-0.5.5 tqdm-4.67.1 typing-extensions-4.15.0 typing-inspection-0.4.2 uritemplate-4.2.0 urllib3-2.6.2
+#29 37.02 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+#29 37.12
+#29 37.12 [notice] A new release of pip is available: 24.0 -> 25.3
+#29 37.12 [notice] To update, run: pip install --upgrade pip
+#29 DONE 38.3s
+
+#37 [backend 6/8] COPY . /app/
+#37 DONE 0.2s
+
+#38 [backend 7/8] RUN mkdir -p /app/staticfiles /app/media
+#38 DONE 0.4s
+
+#39 [backend 8/8] RUN python manage.py collectstatic --noinput || true
+#39 1.211
+#39 1.211 163 static files copied to '/app/staticfiles'.
+#39 DONE 1.3s
+
+#40 [backend] exporting to image
+#40 exporting layers
+#40 exporting layers 12.4s done
+#40 exporting manifest sha256:a35c4ed1b7bc3e5f109f3e9aabbf4732049e535c9d5f660bdb4137471c62a139
+#40 exporting manifest sha256:a35c4ed1b7bc3e5f109f3e9aabbf4732049e535c9d5f660bdb4137471c62a139 done
+#40 exporting config sha256:8a2b2e9a5d4be1ee3329e9db632b94f0c46d9a813d479fc5752ab723bf1d573d done
+#40 exporting attestation manifest sha256:086665b22f8b2d37c7652fc1c415eb1c10c3552c777c6ab84cb69565f89d5ead done
+#40 exporting manifest list sha256:a210b023f9df983839441a877b8971123d2daa205ec342c6d238f4fce9fe5709 done
+#40 naming to docker.io/library/accreditrack-backend:latest done
+#40 unpacking to docker.io/library/accreditrack-backend:latest
+#40 unpacking to docker.io/library/accreditrack-backend:latest 5.8s done
+#40 DONE 18.3s
+
+#41 [backend] resolving provenance for metadata file
+#41 DONE 0.0s
+ Image accreditrack-frontend Built
+ Image accreditrack-nginx Built
+ Image accreditrack-backend Built
+[2025-12-20 05:36:56] ✅ Docker images built successfully
+[2025-12-20 05:36:56] Starting services...
+time="2025-12-20T05:36:56Z" level=warning msg="/root/app/accreditrack/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+ Image postgres:16 Pulling
+ bd6fc428af63
+ 0b5d5a42833c
+ 6731da0a1dbc
+ a2f4fb31fafd
+ 9d9219b46c76
+ d6ba2dba483d
+ 27cce642b31e
+ e65abb0dfda2
+ ebdc127e517b
+ e46c85978ff6
+ 4b9c761c0414
+ 52e9beb5a887
+ a77625ddab57
+ 442d2119ce56
+ e779d5b62af1 [=========>                                         ]  1.049MB/5.708MB
+ e779d5b62af1
+ a77625ddab57
+ bd6fc428af63
+ 0b5d5a42833c [================================>                  ]  4.194MB/6.437MB
+ a2f4fb31fafd [======>                                            ]  1.049MB/8.204MB
+ 4b9c761c0414
+ 6731da0a1dbc
+ 27cce642b31e [==================================================>]  3.144kB/3.144kB
+ ebdc127e517b [==================================================>]  10.01kB/10.01kB
+ d6ba2dba483d [==================================================>]     116B/116B
+ e46c85978ff6
+ bd6fc428af63
+ 0b5d5a42833c
+ a2f4fb31fafd [===================>                               ]  3.146MB/8.204MB
+ 27cce642b31e
+ e65abb0dfda2 [>                                                  ]  2.097MB/113.1MB
+ 52e9beb5a887
+ 9d9219b46c76
+ ebdc127e517b
+ d6ba2dba483d
+ 0b5d5a42833c 1 s
+ e65abb0dfda2 [==>                                                ]  6.291MB/113.1MB
+ a2f4fb31fafd [==================================================>]  8.204MB/8.204MB
+ 0b5d5a42833c 1 s
+ e65abb0dfda2 [======>                                            ]  13.63MB/113.1MB
+ a2f4fb31fafd
+ 0b5d5a42833c 1 s
+ e65abb0dfda2 [========>                                          ]  18.87MB/113.1MB
+ 0b5d5a42833c 1 s
+ e65abb0dfda2 [=========>                                         ]  22.02MB/113.1MB
+ 6731da0a1dbc 1 s
+ 0b5d5a42833c
+ e65abb0dfda2 [============>                                      ]  27.26MB/113.1MB
+ 6731da0a1dbc 1 s
+ e65abb0dfda2 [==============>                                    ]  32.51MB/113.1MB
+ 6731da0a1dbc
+ a2f4fb31fafd 1 s
+ e65abb0dfda2 [===============>                                   ]  35.65MB/113.1MB
+ a2f4fb31fafd 1 s
+ e65abb0dfda2 [================>                                  ]   36.7MB/113.1MB
+ a2f4fb31fafd 1 s
+ e65abb0dfda2 [=================>                                 ]  39.85MB/113.1MB
+ a2f4fb31fafd 1 s
+ e65abb0dfda2 [====================>                              ]  46.14MB/113.1MB
+ a2f4fb31fafd 1 s
+ e65abb0dfda2 [=======================>                           ]  52.43MB/113.1MB
+ a2f4fb31fafd 1 s
+ e65abb0dfda2 [=========================>                         ]  57.67MB/113.1MB
+ 9d9219b46c76 1 s
+ a2f4fb31fafd
+ e65abb0dfda2 [===========================>                       ]  62.91MB/113.1MB
+ 9d9219b46c76 1 s
+ e65abb0dfda2 [===============================>                   ]  70.25MB/113.1MB
+ 27cce642b31e
+ 9d9219b46c76
+ d6ba2dba483d
+ e65abb0dfda2 [=================================>                 ]   75.5MB/113.1MB
+ e65abb0dfda2 [===================================>               ]  79.69MB/113.1MB
+ e65abb0dfda2 [=====================================>             ]  83.89MB/113.1MB
+ e65abb0dfda2 [=======================================>           ]  89.13MB/113.1MB
+ e65abb0dfda2 [==========================================>        ]  96.47MB/113.1MB
+ e65abb0dfda2 [==============================================>    ]  104.9MB/113.1MB
+ e65abb0dfda2 [================================================>  ]  109.2MB/113.1MB
+ e65abb0dfda2
+ e65abb0dfda2 1 s
+ e65abb0dfda2 1 s
+ e65abb0dfda2 1 s
+ e65abb0dfda2 1 s
+ e65abb0dfda2 1 s
+ e65abb0dfda2 1 s
+ e65abb0dfda2 1 s
+ e65abb0dfda2 1 s
+ e65abb0dfda2 1 s
+ e65abb0dfda2 1 s
+ e65abb0dfda2 1 s
+ e65abb0dfda2 2 s
+ e65abb0dfda2 2 s
+ e65abb0dfda2 2 s
+ e65abb0dfda2 2 s
+ e65abb0dfda2 2 s
+ e65abb0dfda2 2 s
+ e65abb0dfda2 2 s
+ e65abb0dfda2 2 s
+ e65abb0dfda2 2 s
+ e65abb0dfda2 2 s
+ e65abb0dfda2 3 s
+ e65abb0dfda2 3 s
+ e65abb0dfda2 3 s
+ e65abb0dfda2 3 s
+ e65abb0dfda2 3 s
+ e65abb0dfda2 3 s
+ e65abb0dfda2 3 s
+ e65abb0dfda2 3 s
+ e65abb0dfda2 3 s
+ e65abb0dfda2 3 s
+ e65abb0dfda2 4 s
+ e65abb0dfda2 4 s
+ e65abb0dfda2 4 s
+ e65abb0dfda2 4 s
+ e65abb0dfda2 4 s
+ e65abb0dfda2 4 s
+ e46c85978ff6 1 s
+ ebdc127e517b
+ e65abb0dfda2
+ a77625ddab57
+ 4b9c761c0414
+ e46c85978ff6
+ 52e9beb5a887
+ Image postgres:16 Pulled
+ Network accreditrack_app-network Creating
+ Network accreditrack_app-network Created
+ Volume accreditrack_backend_static Creating
+ Volume accreditrack_backend_static Created
+ Volume accreditrack_backend_media Creating
+ Volume accreditrack_backend_media Created
+ Volume accreditrack_db_data Creating
+ Volume accreditrack_db_data Created
+ Container accreditrack-db-1 Creating
+ Container accreditrack-frontend-1 Creating
+ Container accreditrack-frontend-1 Created
+ Container accreditrack-db-1 Created
+ Container accreditrack-backend-1 Creating
+ Container accreditrack-backend-1 Created
+ Container accreditrack-nginx-1 Creating
+ Container accreditrack-nginx-1 Created
+ Container accreditrack-frontend-1 Starting
+ Container accreditrack-db-1 Starting
+ Container accreditrack-frontend-1 Started
+ Container accreditrack-db-1 Started
+ Container accreditrack-db-1 Waiting
+ Container accreditrack-db-1 Healthy
+ Container accreditrack-backend-1 Starting
+ Container accreditrack-backend-1 Started
+ Container accreditrack-backend-1 Waiting
+ Container accreditrack-backend-1 Error dependency backend failed to start
+dependency failed to start: container accreditrack-backend-1 is unhealthy
+[ERROR] Failed to start services
+root@localhost:~/app/accreditrack# ls
