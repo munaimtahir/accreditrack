@@ -302,3 +302,24 @@ export const aiService = {
     return api.get('/evidence-assistance/', { params });
   },
 };
+
+/**
+ * Service for compliance status and missing periods.
+ */
+export const complianceService = {
+  /**
+   * Gets compliance status for an indicator.
+   * @param {number} indicatorId - The ID of the indicator.
+   * @returns {Promise<any>} A promise that resolves to the compliance status data.
+   */
+  getComplianceStatus: (indicatorId: number) => 
+    api.get(`/indicators/${indicatorId}/compliance-status/`),
+  
+  /**
+   * Gets missing periods for an indicator.
+   * @param {number} indicatorId - The ID of the indicator.
+   * @returns {Promise<any>} A promise that resolves to the missing periods data.
+   */
+  getMissingPeriods: (indicatorId: number) => 
+    api.get(`/indicators/${indicatorId}/missing-periods/`),
+};

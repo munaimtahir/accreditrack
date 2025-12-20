@@ -162,7 +162,7 @@ const EvidencePanel: React.FC<Props> = ({ indicatorId, projectId, onEvidenceAdde
           drive_file_id: driveResult.id,
           drive_web_view_link: driveResult.webViewLink,
           drive_mime_type: driveResult.mimeType,
-          evidence_text: evidenceType === 'text_declaration' || evidenceType === 'hybrid' 
+          evidence_text: evidenceType === 'hybrid' 
             ? formData.evidence_text 
             : undefined,
           period_start: formData.period_start || undefined,
