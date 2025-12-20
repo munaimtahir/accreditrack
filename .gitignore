@@ -68,6 +68,10 @@ dist/
 .vercel
 *.tsbuildinfo
 
+# Deployment logs and credentials
+deployment_*.log
+admin_credentials_*.txt
+
 # Environment variables (keep examples)
 .env
 .env.local
