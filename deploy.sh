@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 # Configuration
 VPS_IP="${VPS_IP:-172.104.187.212}"
 GEMINI_API_KEY="${GEMINI_API_KEY:-}"  # Set via environment variable or will prompt
-HEALTHCHECK_ENDPOINT="/api/"
+HEALTHCHECK_ENDPOINT="/api/"  # API endpoint used for health checks (returns 200 OK without redirects)
 LOG_FILE="deployment_$(date +%Y%m%d_%H%M%S).log"
 
 # Logging functions
@@ -139,8 +139,16 @@ setup_environment() {
         
         # Generate secure passwords
         log_info "Generating secure credentials..."
-        DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
-        SECRET_KEY=$(openssl rand -base64 50 | tr -d "=+/" | cut -c1-50)
+        
+        # Check if openssl is available
+        if command_exists openssl; then
+            DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-32)
+            SECRET_KEY=$(openssl rand -base64 50 | tr -d "=+/" | cut -c1-50)
+        else
+            log_warning "openssl not found, using /dev/urandom for password generation"
+            DB_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 32)
+            SECRET_KEY=$(tr -dc 'A-Za-z0-9!@#$%^&*()-_=+' < /dev/urandom | head -c 50)
+        fi
         
         # Update .env with generated values
         sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASSWORD|" .env
@@ -302,20 +310,53 @@ wait_for_services() {
 create_admin_user() {
     section "Setting Up Admin User"
     
-    log "Creating admin user..."
-    docker compose exec -T backend python manage.py shell <<'EOF' 2>&1 | tee -a "$LOG_FILE"
+    # Generate a random admin password for security
+    if command_exists openssl; then
+        ADMIN_PASSWORD=$(openssl rand -base64 16 | tr -d "=+/" | cut -c1-16)
+    else
+        ADMIN_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16)
+    fi
+    
+    log "Creating admin user with random password..."
+    docker compose exec -T backend python manage.py shell <<EOF 2>&1 | tee -a "$LOG_FILE"
 from django.contrib.auth.models import User
+admin_password = "$ADMIN_PASSWORD"
 if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
+    User.objects.create_superuser('admin', 'admin@example.com', admin_password)
     print('✅ Admin user created')
 else:
     user = User.objects.get(username='admin')
-    user.set_password('admin123')
+    user.set_password(admin_password)
     user.save()
     print('✅ Admin user password updated')
 EOF
     
-    log "✅ Admin user ready"
+    # Save credentials to a secure file
+    CREDS_FILE="admin_credentials_$(date +%Y%m%d_%H%M%S).txt"
+    cat > "$CREDS_FILE" <<EOF
+AccrediFy Admin Credentials
+============================
+Generated: $(date)
+
+Username: admin
+Password: $ADMIN_PASSWORD
+
+🚨 IMPORTANT SECURITY NOTES:
+1. This file contains sensitive credentials
+2. Store it securely and delete it after recording the password
+3. Change the password immediately after first login
+4. Do NOT commit this file to version control
+
+Access URLs:
+- Admin Panel: http://$VPS_IP/admin/
+- Frontend: http://$VPS_IP/
+EOF
+    
+    chmod 600 "$CREDS_FILE"
+    
+    log "✅ Admin user created with random password"
+    log_warning "🔑 Admin credentials saved to: $CREDS_FILE"
+    log_warning "⚠️  Keep this file secure and delete it after recording the password!"
 }
 
 # Run health checks
@@ -375,8 +416,11 @@ display_summary() {
     
     log "🔑 Admin Credentials:"
     log "   Username: admin"
-    log "   Password: admin123"
-    log "   ⚠️  Please change the admin password after first login!"
+    log "   Password: (saved in credentials file)"
+    log ""
+    log_warning "   📄 Credentials file: $CREDS_FILE"
+    log_warning "   🔒 Keep this file secure and delete after use!"
+    log_warning "   ⚠️  Change the password immediately after first login!"
     echo "" | tee -a "$LOG_FILE"
     
     log "📊 Container Status:"

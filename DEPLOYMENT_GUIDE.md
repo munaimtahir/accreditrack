@@ -81,27 +81,29 @@ After successful deployment:
 - **API Documentation**: http://YOUR_VPS_IP/api/docs/
 - **Admin Panel**: http://YOUR_VPS_IP/admin/
 
-## Default Credentials
+## Admin Credentials
 
-⚠️ **CRITICAL SECURITY WARNING** ⚠️
-
-The deployment creates a default admin account with **PUBLICLY KNOWN** credentials:
+For security, the deployment script generates a **random admin password** and saves it to a credentials file:
 
 ```
-Username: admin
-Password: admin123
+admin_credentials_YYYYMMDD_HHMMSS.txt
 ```
 
-🚨 **YOU MUST CHANGE THIS PASSWORD IMMEDIATELY AFTER FIRST LOGIN!** 🚨
+🔒 **Security Notes**:
+1. The credentials file contains your admin username and randomly generated password
+2. The file is created with restricted permissions (chmod 600)
+3. **Delete this file** after securely recording the password
+4. **Change the password** immediately after first login
+5. **Never** commit credentials files to version control
 
-These credentials are documented publicly and should be considered compromised. Failure to change them immediately exposes your application to unauthorized access.
+To change the admin password after first login:
 
-To change the password:
-1. Log in with the default credentials
+**Via Admin Panel**:
+1. Log in with credentials from the file
 2. Go to Admin Panel → Users → admin
-3. Change password immediately
+3. Update password
 
-Or via command line:
+**Via Command Line**:
 ```bash
 docker compose exec backend python manage.py changepassword admin
 ```
