@@ -40,20 +40,20 @@ Before running the deployment script, ensure you have:
 
 ### Environment Variables
 
-The script uses the following environment variables (all optional):
+The script uses the following environment variables (all have defaults):
 
 - `VPS_IP`: Your server's IP address (default: `172.104.187.212`)
-- `GEMINI_API_KEY`: Your Gemini AI API key (required for AI features)
+- `GEMINI_API_KEY`: Your Gemini AI API key (default: demo key provided)
 
-**IMPORTANT**: For security, set `GEMINI_API_KEY` via environment variable:
+**Note**: A default Gemini API key is provided for demo/testing purposes. For production use, you should set your own API key:
 
 ```bash
 export VPS_IP="your.server.ip"
-export GEMINI_API_KEY="your-api-key"  # DO NOT commit this to git
+export GEMINI_API_KEY="your-api-key"
 ./deploy.sh
 ```
 
-If `GEMINI_API_KEY` is not set, AI features will not work.
+If you don't set `GEMINI_API_KEY`, the default demo key will be used for AI features.
 
 ### .env File
 

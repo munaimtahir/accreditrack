@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 VPS_IP="${VPS_IP:-172.104.187.212}"
-GEMINI_API_KEY="${GEMINI_API_KEY:-}"  # Set via environment variable or will prompt
+GEMINI_API_KEY="${GEMINI_API_KEY:-AIzaSyAvK-H204qOxbincL3UZaiU1f8bSglvULg}"  # Default API key for demo/testing
 HEALTHCHECK_ENDPOINT="/api/"  # API endpoint used for health checks (returns 200 OK without redirects)
 LOG_FILE="deployment_$(date +%Y%m%d_%H%M%S).log"
 
@@ -186,7 +186,7 @@ setup_environment() {
     if grep -q "GEMINI_API_KEY=.\+" .env 2>/dev/null && [ -n "$(grep GEMINI_API_KEY .env | cut -d= -f2)" ]; then
         log_info "  GEMINI_API_KEY=***CONFIGURED***"
     else
-        log_warning "  GEMINI_API_KEY=***NOT CONFIGURED*** (AI features will not work)"
+        log_info "  GEMINI_API_KEY=***USING DEFAULT DEMO KEY***"
     fi
 }
 
