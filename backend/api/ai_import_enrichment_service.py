@@ -15,8 +15,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 from django.conf import settings
 from django.utils import timezone
-from .models import Indicator, DigitalFormTemplate
-from .ai_analysis_service import analyze_indicator_frequency
+from .models import Indicator, DigitalFormTemplate, PendingDigitalFormTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -208,8 +207,6 @@ def _build_batch_enrichment_prompt(indicators: List[Indicator]) -> str:
             'requirement': indicator.requirement,
             'evidence_required': indicator.evidence_required or 'Not specified',
             'frequency': indicator.frequency or 'Not specified',
-            'normalized_frequency': indicator.normalized_frequency or '',
-            'schedule_type': indicator.schedule_type
         })
     
     prompt = f"""You are a compliance expert for medical institutions, laboratories, and universities.
@@ -223,8 +220,9 @@ Each indicator must have this exact structure:
     "ai_summary": "1-2 line summary",
     "ai_implementation_steps": ["step 1", "step 2", "step 3", "step 4", "step 5"],
     "ai_evidence_examples": ["example 1", "example 2", "example 3"],
+    "schedule_type": "one_time" | "recurring",
+    "normalized_frequency": "Daily" | "Weekly" | "Monthly" | "Quarterly" | "Annual" | "Other" | null,
     "indicator_type": "one_time" | "periodic_logging" | "continuous_practice" | "event_triggered",
-    "frequency_detected": "normalized frequency string or empty",
     "logging_plan": {{
         "log_name": "name for the log",
         "log_frequency": "Daily/Weekly/Monthly/etc or null",
@@ -246,6 +244,8 @@ Each indicator must have this exact structure:
 }}
 
 RULES:
+- schedule_type: Based on the 'frequency' input, determine if the task is "one_time" or "recurring".
+- normalized_frequency: If 'recurring', normalize the frequency to one of the standard values. If not applicable, use null.
 - indicator_type: Use "periodic_logging" if frequency suggests recurring entries (daily/weekly/monthly logs)
 - indicator_type: Use "continuous_practice" if it's an ongoing practice/policy
 - indicator_type: Use "event_triggered" if it happens on specific events
@@ -329,23 +329,15 @@ def _rule_based_enrichment(indicator: Indicator) -> Dict[str, Any]:
     Generate enrichment data using rule-based logic (fallback when AI unavailable).
     """
     # Convert model fields to strings
-    section_name = str(indicator.section.name) if indicator.section else str(indicator.area) if indicator.area else ''
-    standard_name = str(indicator.standard.name) if indicator.standard else str(indicator.regulation_or_standard) if indicator.regulation_or_standard else ''
     requirement_text = str(indicator.requirement)
     evidence_text = str(indicator.evidence_required) if indicator.evidence_required else ''
     frequency_text = str(indicator.frequency) if indicator.frequency else ''
-    normalized_freq = str(indicator.normalized_frequency) if indicator.normalized_frequency else ''
-    schedule_type = str(indicator.schedule_type)
-    
-    # Use existing frequency analysis
-    freq_analysis = analyze_indicator_frequency(
-        section_name,
-        standard_name,
-        requirement_text,
-        evidence_text,
-        frequency_text
-    )
-    
+
+    # More robust rule-based frequency analysis
+    freq_analysis = _rule_based_frequency_detection(frequency_text)
+    schedule_type = freq_analysis.get('schedule_type', 'one_time')
+    normalized_freq = freq_analysis.get('normalized_frequency', '')
+
     # Determine indicator type
     if schedule_type == 'recurring' and normalized_freq:
         indicator_type = 'periodic_logging'
@@ -423,13 +415,74 @@ def _rule_based_enrichment(indicator: Indicator) -> Dict[str, Any]:
         'ai_summary': summary,
         'ai_implementation_steps': implementation_steps,
         'ai_evidence_examples': evidence_examples[:6],
+        'schedule_type': schedule_type,
+        'normalized_frequency': normalized_freq,
         'indicator_type': indicator_type,
-        'frequency_detected': normalized_freq,
         'logging_plan': logging_plan,
         'ai_help_level': ai_help_level,
         'ai_help_reason': ai_help_reason,
         'created_by_ai_at': timezone.now().isoformat(),
         'model': 'rule_based'
+    }
+
+
+def _rule_based_frequency_detection(frequency_text: str) -> Dict[str, Any]:
+    """
+    Rule-based frequency detection for common patterns.
+
+    Returns schedule_type and normalized_frequency based on keywords.
+    """
+    if not frequency_text:
+        return {
+            'schedule_type': 'one_time',
+            'normalized_frequency': '',
+        }
+
+    freq_lower = frequency_text.lower().strip()
+
+    # One-time patterns
+    one_time_patterns = [
+        'one time', 'onetime', 'once', 'one-time', 'initial', 'setup',
+        'n/a', 'na', 'not applicable', 'none'
+    ]
+
+    for pattern in one_time_patterns:
+        if pattern in freq_lower:
+            return {
+                'schedule_type': 'one_time',
+                'normalized_frequency': '',
+            }
+
+    # Recurring patterns with normalization
+    recurring_patterns = {
+        'Daily': ['daily', 'every day', 'each day'],
+        'Weekly': ['weekly', 'every week', 'each week'],
+        'Bi-weekly': ['bi-weekly', 'biweekly', 'every 2 weeks', 'every two weeks', 'fortnightly'],
+        'Monthly': ['monthly', 'every month', 'each month'],
+        'Quarterly': ['quarterly', 'every quarter', 'every 3 months', 'every three months'],
+        'Semi-annually': ['semi-annual', 'semiannual', 'twice a year', 'every 6 months', 'every six months'],
+        'Annual': ['annual', 'annually', 'yearly', 'every year', 'each year'],
+    }
+
+    for normalized, patterns in recurring_patterns.items():
+        for pattern in patterns:
+            if pattern in freq_lower:
+                return {
+                    'schedule_type': 'recurring',
+                    'normalized_frequency': normalized,
+                }
+
+    # If contains numbers, likely recurring
+    if re.search(r'\d+', freq_lower):
+        return {
+            'schedule_type': 'recurring',
+            'normalized_frequency': frequency_text,  # Keep original if can't normalize
+        }
+
+    # Default to one_time
+    return {
+        'schedule_type': 'one_time',
+        'normalized_frequency': '',
     }
 
 
@@ -478,39 +531,54 @@ def _apply_enrichment_to_indicator(
     - Creating DigitalFormTemplate if logging_plan exists
     - Updating schedule_type and next_due_date if needed
     """
+    updates = {}
+
+    # Update schedule_type and normalized_frequency from enrichment
+    schedule_type = enrichment_data.get('schedule_type')
+    if schedule_type and indicator.schedule_type != schedule_type:
+        updates['schedule_type'] = schedule_type
+
+    normalized_frequency = enrichment_data.get('normalized_frequency')
+    if normalized_frequency and indicator.normalized_frequency != normalized_frequency:
+        updates['normalized_frequency'] = normalized_frequency
+
     # Update indicator_type classification
     indicator_type = enrichment_data.get('indicator_type')
     
     # If periodic_logging, set evidence_mode
     if indicator_type == 'periodic_logging':
-        updates = {}
-        
         if str(indicator.evidence_mode) != 'frequency_log':
             updates['evidence_mode'] = 'frequency_log'
         
         # Ensure schedule_type is recurring
         if str(indicator.schedule_type) != 'recurring':
             updates['schedule_type'] = 'recurring'
-            from .scheduling_service import calculate_next_due_date
-            normalized_freq = str(indicator.normalized_frequency) if indicator.normalized_frequency else None
-            if normalized_freq:
-                next_due = calculate_next_due_date(normalized_freq)
-                if next_due:
-                    updates['next_due_date'] = next_due
-        
-        if updates:
-            for field, value in updates.items():
-                setattr(indicator, field, value)
-            indicator.save(update_fields=list(updates.keys()))
+
+    # Calculate next_due_date if we have a recurring schedule and frequency
+    # Use the enrichment data directly
+    current_schedule_type = updates.get('schedule_type', indicator.schedule_type)
+    current_normalized_frequency = updates.get('normalized_frequency', indicator.normalized_frequency)
+
+    if current_schedule_type == 'recurring' and current_normalized_frequency:
+        from .scheduling_service import calculate_next_due_date
+        next_due = calculate_next_due_date(current_normalized_frequency)
+        if next_due:
+            updates['next_due_date'] = next_due
+
+    if updates:
+        for field, value in updates.items():
+            setattr(indicator, field, value)
+        indicator.save(update_fields=list(updates.keys()))
     
-    # Create DigitalFormTemplate if logging_plan exists
+    # Create PendingDigitalFormTemplate if logging_plan exists
     logging_plan = enrichment_data.get('logging_plan')
     if logging_plan and logging_plan.get('fields'):
-        # Check if template already exists
-        existing_template = DigitalFormTemplate.objects.filter(indicator=indicator).first()
+        # Check if a pending or approved template already exists
+        existing_pending = PendingDigitalFormTemplate.objects.filter(indicator=indicator).exists()
+        existing_approved = DigitalFormTemplate.objects.filter(indicator=indicator).exists()
         
-        if not existing_template:
-            # Create new template
+        if not existing_pending and not existing_approved:
+            # Create new pending template for review
             indicator_code = str(indicator.indicator_code) if indicator.indicator_code else ''
             requirement_text = str(indicator.requirement)
             requirement_short = requirement_text[:40] if len(requirement_text) > 40 else requirement_text
@@ -518,14 +586,14 @@ def _apply_enrichment_to_indicator(
             form_name = logging_plan.get('log_name', f"Log template - {indicator_code or requirement_short}")
             description = enrichment_data.get('ai_summary', requirement_text)
             
-            DigitalFormTemplate.objects.create(
+            PendingDigitalFormTemplate.objects.create(
                 indicator=indicator,
                 name=form_name,
                 description=description,
                 form_fields=logging_plan['fields'],
                 created_by=user
             )
-            logger.info(f"Created DigitalFormTemplate for indicator {indicator.id}")
+            logger.info(f"Created PendingDigitalFormTemplate for indicator {indicator.id}")
 
 
 def _has_enrichment_data(indicator: Indicator) -> bool:

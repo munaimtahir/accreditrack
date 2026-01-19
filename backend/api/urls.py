@@ -6,7 +6,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     ProjectViewSet, IndicatorViewSet, EvidenceViewSet,
     SectionViewSet, StandardViewSet, FrequencyLogViewSet,
-    DigitalFormTemplateViewSet, EvidencePeriodViewSet
+    DigitalFormTemplateViewSet, EvidencePeriodViewSet,
+    PendingDigitalFormTemplateViewSet
 )
 from . import ai_views
 from .views import submit_digital_form
@@ -20,6 +21,7 @@ router.register(r'indicators', IndicatorViewSet, basename='indicator')
 router.register(r'evidence', EvidenceViewSet, basename='evidence')
 router.register(r'frequency-logs', FrequencyLogViewSet, basename='frequency-log')
 router.register(r'form-templates', DigitalFormTemplateViewSet, basename='form-template')
+router.register(r'pending-form-templates', PendingDigitalFormTemplateViewSet, basename='pending-form-template')
 router.register(r'evidence-periods', EvidencePeriodViewSet, basename='evidence-period')
 
 # AI endpoints

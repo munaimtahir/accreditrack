@@ -151,6 +151,87 @@ class EvidenceMetadataTests(TestCase):
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
-        self.assertEqual(response.data[0]['title'], 'Evidence 1')
-        self.assertEqual(response.data[1]['title'], 'Evidence 2')
+        # Note: Order is not guaranteed, so we check for presence instead of exact order.
+        self.assertIn('Evidence 1', [e['title'] for e in response.data])
+        self.assertIn('Evidence 2', [e['title'] for e in response.data])
+
+
+class PendingDigitalFormTemplateTests(TestCase):
+    """Tests for the PendingDigitalFormTemplateViewSet."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.client.force_authenticate(user=self.user)
+        self.project = Project.objects.create(name='Test Project')
+        self.section = Section.objects.create(project=self.project, name='Test Section')
+        self.standard = Standard.objects.create(section=self.section, name='Test Standard')
+        self.indicator = Indicator.objects.create(
+            project=self.project,
+            section=self.section,
+            standard=self.standard,
+            requirement='Test Requirement'
+        )
+        self.pending_template = PendingDigitalFormTemplate.objects.create(
+            indicator=self.indicator,
+            name='Test Pending Form',
+            description='A test form.',
+            form_fields=[{'name': 'test_field', 'type': 'text'}]
+        )
+
+    def test_approve_pending_template(self):
+        """Test approving a pending form template."""
+        url = f'/api/pending-form-templates/{self.pending_template.id}/approve/'
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(DigitalFormTemplate.objects.filter(indicator=self.indicator).exists())
+        self.pending_template.refresh_from_db()
+        self.assertEqual(self.pending_template.status, 'approved')
+
+    def test_reject_pending_template(self):
+        """Test rejecting a pending form template."""
+        url = f'/api/pending-form-templates/{self.pending_template.id}/reject/'
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.pending_template.refresh_from_db()
+        self.assertEqual(self.pending_template.status, 'rejected')
+    """Tests for the PendingDigitalFormTemplateViewSet."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.client.force_authenticate(user=self.user)
+        self.project = Project.objects.create(name='Test Project')
+        self.section = Section.objects.create(project=self.project, name='Test Section')
+        self.standard = Standard.objects.create(section=self.section, name='Test Standard')
+        self.indicator = Indicator.objects.create(
+            project=self.project,
+            section=self.section,
+            standard=self.standard,
+            requirement='Test Requirement'
+        )
+        self.pending_template = PendingDigitalFormTemplate.objects.create(
+            indicator=self.indicator,
+            name='Test Pending Form',
+            description='A test form.',
+            form_fields=[{'name': 'test_field', 'type': 'text'}]
+        )
+
+    def test_approve_pending_template(self):
+        """Test approving a pending form template."""
+        url = f'/api/pending-form-templates/{self.pending_template.id}/approve/'
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(DigitalFormTemplate.objects.filter(indicator=self.indicator).exists())
+        self.assertFalse(PendingDigitalFormTemplate.objects.filter(id=self.pending_template.id).exists())
+
+    def test_reject_pending_template(self):
+        """Test rejecting a pending form template."""
+        url = f'/api/pending-form-templates/{self.pending_template.id}/reject/'
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.pending_template.refresh_from_db()
+        self.assertEqual(self.pending_template.status, 'rejected')
 

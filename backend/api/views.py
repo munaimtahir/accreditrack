@@ -5,14 +5,16 @@ from rest_framework.response import Response
 from datetime import date, timedelta
 from .models import (
     Project, Indicator, Evidence, Section, Standard, IndicatorStatusHistory, 
-    FrequencyLog, DigitalFormTemplate, EvidencePeriod, GoogleDriveFolderCache
+    FrequencyLog, DigitalFormTemplate, EvidencePeriod, GoogleDriveFolderCache,
+    PendingDigitalFormTemplate
 )
 from .serializers import (
     ProjectSerializer, IndicatorSerializer, EvidenceSerializer,
     SectionSerializer, StandardSerializer, CSVImportResultSerializer,
     UpcomingTaskSerializer, IndicatorStatusUpdateSerializer,
     IndicatorStatusHistorySerializer, FrequencyLogSerializer,
-    DigitalFormTemplateSerializer, EvidencePeriodSerializer
+    DigitalFormTemplateSerializer, EvidencePeriodSerializer,
+    PendingDigitalFormTemplateSerializer
 )
 from .csv_import_service import CSVImportService
 from .scheduling_service import is_overdue, days_until_due, get_period_dates
@@ -868,6 +870,83 @@ Form Data:
 """
         filename = f"form_submission_{indicator.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         return content.encode('utf-8'), filename
+
+
+class PendingDigitalFormTemplateViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for reviewing AI-generated Digital Form Templates.
+    Provides list, retrieve, approve, and reject actions.
+    """
+    queryset = PendingDigitalFormTemplate.objects.filter(status='pending')
+    serializer_class = PendingDigitalFormTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter pending templates by project if project_id is provided."""
+        queryset = PendingDigitalFormTemplate.objects.filter(status='pending')
+        project_id = self.request.query_params.get('project_id', None)
+        if project_id:
+            queryset = queryset.filter(indicator__project_id=project_id)
+        return queryset
+
+    @action(detail=True, methods=['post'], url_path='approve')
+    def approve(self, request, pk=None):
+        """
+        Approve a pending form template.
+        This creates a DigitalFormTemplate and updates the pending version's status.
+        """
+        with transaction.atomic():
+            # Lock the pending template to prevent race conditions
+            pending_template = PendingDigitalFormTemplate.objects.select_for_update().get(pk=pk)
+
+            # Ensure it's still pending
+            if pending_template.status != 'pending':
+                return Response(
+                    {'error': 'This template has already been reviewed.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Create the real DigitalFormTemplate
+            digital_template = DigitalFormTemplate.objects.create(
+                indicator=pending_template.indicator,
+                name=pending_template.name,
+                description=pending_template.description,
+                form_fields=pending_template.form_fields,
+                created_by=pending_template.created_by,
+            )
+
+            # Update the pending template's status for the audit trail
+            pending_template.status = 'approved'
+            pending_template.reviewed_by = request.user
+            pending_template.reviewed_at = date.today()
+            pending_template.save()
+
+            return Response(
+                {'status': 'approved', 'digital_form_template_id': digital_template.id},
+                status=status.HTTP_201_CREATED
+            )
+
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject(self, request, pk=None):
+        """
+        Reject a pending form template.
+        This updates its status to 'rejected'.
+        """
+        pending_template = self.get_object()
+        pending_template.status = 'rejected'
+        pending_template.reviewed_by = request.user
+        pending_template.reviewed_at = date.today()
+
+        rejection_reason = request.data.get('rejection_reason', '')
+        if rejection_reason:
+            # Store the rejection reason in the ai_analysis_data field as a workaround
+            if not pending_template.ai_analysis_data:
+                pending_template.ai_analysis_data = {}
+            pending_template.ai_analysis_data['rejection_reason'] = rejection_reason
+
+        pending_template.save()
+
+        return Response({'status': 'rejected'}, status=status.HTTP_200_OK)
 
 
 def _generate_form_csv(indicator, form_template, form_data, period_start, period_end):
